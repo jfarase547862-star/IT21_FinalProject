@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SignaSure
+    </title>
+    <style>
+        :root {
+            --bg-1: #f0f9ff;
+            --bg-2: #e0f2fe;
+            --card: #ffffff;
+            --text: #0f172a;
+            --muted: #475569;
+            --accent: #0284c7;
+            --accent-soft: #bae6fd;
+            --border: #cbd5e1;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text);
+            background: linear-gradient(135deg, var(--bg-1), var(--bg-2));
+            display: grid;
+            place-items: center;
+            padding: 24px;
+        }
+
+        .card {
+            width: min(680px, 100%);
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 28px;
+            box-shadow: 0 14px 35px rgba(2, 132, 199, 0.18);
+        }
+
+        .badge {
+            display: inline-block;
+            background: var(--accent-soft);
+            color: var(--accent);
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+
+        h1 {
+            margin: 14px 0 10px;
+            font-size: clamp(1.8rem, 4vw, 2.3rem);
+        }
+
+        p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.6;
+            font-size: 1rem;
+        }
+
+        .actions {
+            margin-top: 24px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .button {
+            display: inline-block;
+            text-decoration: none;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-weight: 600;
+            border: 1px solid transparent;
+        }
+
+        .button.primary {
+            background: var(--accent);
+            color: #ffffff;
+        }
+
+        .button.secondary {
+            background: #ffffff;
+            color: var(--accent);
+            border-color: var(--accent-soft);
+        }
+    </style>
+</head>
+<body>
+<section class="card">
+    <span class="badge">Spring Boot + Thymeleaf</span>
+    <h1>Simple Thymeleaf Page</h1>
+    <p>
+        Your project is now rendering this page from the templates folder.
+        You can keep building your final project UI here.
+    </p>
+    <div class="actions">
+        <a class="button primary" href="#">Login</a>
+        <a class="button secondary" href="#">Learn More</a>
+    </div>
+</section>
+</body>
+</html>
