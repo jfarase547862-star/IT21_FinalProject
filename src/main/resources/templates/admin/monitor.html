@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Monitor</title>
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<div class="app-shell">
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-mark">
+                <img src="/images/IT21Logo.png" alt="IT21 logo" class="brand-logo">
+            </div>
+            <div>
+                <p>Secure Document Authentication</p>
+            </div>
+        </div>
+
+        <nav class="nav-links">
+            <a class="nav-link" href="/dashboard/admin">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 13h8V3H3v10zM3 21h8v-6H3v6zM13 21h8v-10h-8v10zM13 3v6h8V3h-8z" fill="#153927"/></svg>
+                Dashboard
+            </a>
+            <a class="nav-link" href="/admin/users">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="3" stroke="#153927" stroke-width="1.5"/><path d="M6 20v-1a4 4 0 014-4h4a4 4 0 014 4v1" stroke="#153927" stroke-width="1.5"/></svg>
+                Manage Users
+            </a>
+            <a class="nav-link" href="/admin/keys">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 10v6a2 2 0 0 1-2 2h-3v-2h-2v2H6v-6a6 6 0 1 1 12 0z" fill="#153927"/></svg>
+                Manage Keys
+            </a>
+            <a class="nav-link" href="/admin/logs">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 7h18M3 12h18M3 17h18" stroke="#153927" stroke-width="2" stroke-linecap="round"/></svg>
+                Logs &amp; Audits
+            </a>
+            <a class="nav-link" href="/admin/reports">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 17v-6h13v6a2 2 0 0 1-2 2H11a2 2 0 0 1-2-2z" fill="#153927"/><path d="M3 7h18v4H3z" fill="#153927"/></svg>
+                Reports
+            </a>
+            <a class="nav-link active" href="/admin/monitor">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 18h16M7 15l2-4 3 2 5-6" stroke="#153927" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                System Monitor
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <p>Secure • Fast • Reliable</p>
+        </div>
+    </aside>
+
+    <main class="content">
+        <header class="topbar">
+            <div>
+                <h2>System Monitor</h2>
+                <p class="eyebrow">Live system activity and security events.</p>
+            </div>
+            <div class="user-chip dropdown">
+                <button class="user-chip-button" type="button" aria-expanded="false">
+                    <span th:text="${userName} + ' (Admin)'"></span>
+                    <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 9l6 6 6-6" stroke="#153927" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <div class="dropdown-menu hidden" role="menu">
+                    <a class="dropdown-item logout-trigger" href="#">Log Out</a>
+                </div>
+            </div>
+        </header>
+
+        <section class="dashboard-grid">
+            <!-- Metrics Cards -->
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px">
+                <article class="panel" style="padding:16px">
+                    <div style="font-size:0.9rem;color:#666;margin-bottom:8px">CPU Usage</div>
+                    <div style="font-weight:700;font-size:2rem;color:#153927" id="cpuMetric">--</div>
+                    <div style="height:4px;background:#e5e7eb;border-radius:2px;margin-top:8px;overflow:hidden"><div id="cpuBar" style="height:100%;background:#153927;width:0%;transition:width 0.3s ease"></div></div>
+                </article>
+                
+                <article class="panel" style="padding:16px">
+                    <div style="font-size:0.9rem;color:#666;margin-bottom:8px">Memory Usage</div>
+                    <div style="font-weight:700;font-size:2rem;color:#153927" id="memMetric">--</div>
+                    <div style="font-size:0.8rem;color:#999;margin-top:4px" id="memDetail"></div>
+                    <div style="height:4px;background:#e5e7eb;border-radius:2px;margin-top:8px;overflow:hidden"><div id="memBar" style="height:100%;background:#16a34a;width:0%;transition:width 0.3s ease"></div></div>
+                </article>
+                
+                <article class="panel" style="padding:16px">
+                    <div style="font-size:0.9rem;color:#666;margin-bottom:8px">Active Connections</div>
+                    <div style="font-weight:700;font-size:2rem;color:#153927" id="connMetric">--</div>
+                    <div style="font-size:0.8rem;color:#999;margin-top:12px">Connected users</div>
+                </article>
+                
+                <article class="panel" style="padding:16px">
+                    <div style="font-size:0.9rem;color:#666;margin-bottom:8px">Requests/sec</div>
+                    <div style="font-weight:700;font-size:2rem;color:#153927" id="rpsMetric">--</div>
+                    <div style="font-size:0.8rem;color:#999;margin-top:12px">Last 60 seconds</div>
+                </article>
+
+                <article class="panel" style="padding:16px">
+                    <div style="font-size:0.9rem;color:#666;margin-bottom:8px">Uptime</div>
+                    <div style="font-weight:700;font-size:1.3rem;color:#153927" id="uptimeMetric">--</div>
+                    <div style="font-size:0.8rem;color:#999;margin-top:12px">System uptime</div>
+                </article>
+
+                <article class="panel" style="padding:16px">
+                    <div style="font-size:0.9rem;color:#666;margin-bottom:8px">Avg Response Time</div>
+                    <div style="font-weight:700;font-size:2rem;color:#153927" id="respMetric">--</div>
+                    <div style="font-size:0.8rem;color:#999;margin-top:12px">Per request</div>
+                </article>
+            </div>
+
+            <!-- Health Status -->
+            <article class="panel" style="margin-bottom:24px">
+                <div class="panel-header">
+                    <h3>System Health</h3>
+                    <div id="healthStatus" style="padding:8px 12px;border-radius:999px;font-weight:700;background:#22c55e;color:#fff">Healthy</div>
+                </div>
+                <div id="healthServices" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px"></div>
+                <div id="healthWarnings" style="margin-top:12px;padding:12px;background:#fef08a;border-radius:8px;border:1px solid #fcd34d;color:#854d0e;display:none"></div>
+            </article>
+
+            <!-- Performance Charts -->
+            <article class="panel" style="margin-bottom:24px">
+                <div class="panel-header">
+                    <h3>Performance (24-hour)</h3>
+                    <div style="display:flex;gap:16px;font-size:0.9rem">
+                        <div><span style="display:inline-block;width:12px;height:12px;background:#153927;border-radius:2px;vertical-align:middle;margin-right:4px"></span>Requests/sec</div>
+                        <div><span style="display:inline-block;width:12px;height:12px;background:#16a34a;border-radius:2px;vertical-align:middle;margin-right:4px"></span>Response Time (ms)</div>
+                    </div>
+                </div>
+                <svg id="perfChart" style="width:100%;height:200px;margin-top:16px"></svg>
+            </article>
+
+            <!-- Active Sessions -->
+            <article class="panel" style="margin-bottom:24px">
+                <div class="panel-header">
+                    <h3>Active Sessions</h3>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>IP Address</th>
+                                <th>Login Time</th>
+                                <th>Last Activity</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sessionsTable"></tbody>
+                    </table>
+                </div>
+            </article>
+
+            <!-- Security Alerts -->
+            <article class="panel">
+                <div class="panel-header">
+                    <h3>Security Alerts</h3>
+                </div>
+                <div id="alertsList" style="display:grid;gap:12px"></div>
+            </article>
+        </section>
+    </main>
+    <div class="modal-overlay hidden" id="logoutModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Confirm Logout</h3>
+            </div>
+            <p>Are you sure you want to log out? Your current session will end and you will be returned to the login page.</p>
+            <div class="modal-actions">
+                <button type="button" class="ghost-button modal-close">Cancel</button>
+                <a class="primary-button modal-confirm" href="/logout">Log Out</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const logoutTrigger = document.querySelector('.logout-trigger');
+        const logoutModal = document.getElementById('logoutModal');
+        const modalCloseButtons = document.querySelectorAll('.modal-close');
+
+        logoutTrigger?.addEventListener('click', event => {
+            event.preventDefault();
+            logoutModal.classList.remove('hidden');
+        });
+
+        modalCloseButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                logoutModal.classList.add('hidden');
+            });
+        });
+
+        logoutModal.addEventListener('click', event => {
+            if (event.target === logoutModal) {
+                logoutModal.classList.add('hidden');
+            }
+        });
+
+        // System Monitoring
+        let perfData = { requestRates: [], responseTimes: [] };
+
+        function formatTime(ms) {
+            const date = new Date(ms);
+            const now = new Date();
+            const diff = now - date;
+            if (diff < 60000) return 'just now';
+            if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+            if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+            return date.toLocaleString();
+        }
+
+        async function updateMetrics() {
+            try {
+                const res = await fetch('/admin/api/monitor/metrics');
+                const data = await res.json();
+                
+                document.getElementById('cpuMetric').textContent = data.cpu + '%';
+                document.getElementById('cpuBar').style.width = data.cpu + '%';
+                
+                document.getElementById('memMetric').textContent = data.memory + '%';
+                document.getElementById('memDetail').textContent = data.memoryUsed + ' / ' + data.memoryTotal;
+                document.getElementById('memBar').style.width = data.memory + '%';
+                
+                document.getElementById('connMetric').textContent = data.activeConnections;
+                document.getElementById('rpsMetric').textContent = data.requestsPerSecond;
+                document.getElementById('uptimeMetric').textContent = data.uptime;
+                document.getElementById('respMetric').textContent = data.avgResponseTime;
+            } catch (e) {
+                console.error('Metrics error:', e);
+            }
+        }
+
+        async function updateSessions() {
+            try {
+                const res = await fetch('/admin/api/monitor/sessions');
+                const sessions = await res.json();
+                
+                const tbody = document.getElementById('sessionsTable');
+                tbody.innerHTML = sessions.map(s => `
+                    <tr>
+                        <td>${s.user}</td>
+                        <td>${s.ip}</td>
+                        <td>${formatTime(s.loginTime)}</td>
+                        <td>${formatTime(s.lastActivity)}</td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                console.error('Sessions error:', e);
+            }
+        }
+
+        async function updateAlerts() {
+            try {
+                const res = await fetch('/admin/api/monitor/alerts');
+                const alerts = await res.json();
+                
+                const list = document.getElementById('alertsList');
+                list.innerHTML = alerts.map(a => `
+                    <div style="padding:12px;border-radius:8px;border-left:4px;background:${
+                        a.level === 'warning' ? '#fef3c7' : a.level === 'error' ? '#fee2e2' : '#dcfce7'
+                    };border-color:${
+                        a.level === 'warning' ? '#f59e0b' : a.level === 'error' ? '#ef4444' : '#22c55e'
+                    }">
+                        <div style="font-weight:700;color:#${
+                            a.level === 'warning' ? '92400e' : a.level === 'error' ? '7f1d1d' : '15803d'
+                        }">${a.title}</div>
+                        <div style="font-size:0.9rem;margin-top:4px;color:#666">${a.message}</div>
+                        <div style="font-size:0.8rem;color:#999;margin-top:4px">${formatTime(a.timestamp)}</div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error('Alerts error:', e);
+            }
+        }
+
+        async function updateHealth() {
+            try {
+                const res = await fetch('/admin/api/monitor/health');
+                const health = await res.json();
+                
+                const status = document.getElementById('healthStatus');
+                status.textContent = health.status.toUpperCase();
+                status.style.background = health.status === 'healthy' ? '#22c55e' : '#ef4444';
+                
+                const services = document.getElementById('healthServices');
+                const serviceData = health.services;
+                services.innerHTML = Object.entries(serviceData).map(([name, svc]) => `
+                    <div style="padding:12px;border:1px solid var(--border);border-radius:8px">
+                        <div style="font-weight:700;margin-bottom:6px">${name}</div>
+                        <div style="font-size:0.9rem"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${svc.status === 'up' ? '#22c55e' : '#ef4444'};vertical-align:middle;margin-right:4px"></span>${svc.status}</div>
+                        <div style="font-size:0.8rem;color:#666;margin-top:4px">
+                            ${Object.entries(svc).filter(([k]) => k !== 'status' && k !== 'lastCheck').map(([k, v]) => `${k}: ${v}`).join(' • ')}
+                        </div>
+                    </div>
+                `).join('');
+                
+                const warnings = document.getElementById('healthWarnings');
+                if (health.warnings.length > 0) {
+                    warnings.innerHTML = '<strong>Warnings:</strong><br>' + health.warnings.join('<br>');
+                    warnings.style.display = 'block';
+                } else {
+                    warnings.style.display = 'none';
+                }
+            } catch (e) {
+                console.error('Health error:', e);
+            }
+        }
+
+        async function updatePerformance() {
+            try {
+                const res = await fetch('/admin/api/monitor/performance');
+                const data = await res.json();
+                perfData = data;
+                renderChart();
+            } catch (e) {
+                console.error('Performance error:', e);
+            }
+        }
+
+        function renderChart() {
+            const svg = document.getElementById('perfChart');
+            if (!svg || perfData.requestRates.length === 0) return;
+            
+            const width = svg.clientWidth;
+            const height = 200;
+            const padding = 20;
+            const dataWidth = width - 2 * padding;
+            const dataHeight = height - 2 * padding;
+            const maxRPS = Math.max(...perfData.requestRates);
+            const maxRT = Math.max(...perfData.responseTimes);
+            
+            let path1 = `M ${padding}`;
+            let path2 = `M ${padding}`;
+            
+            perfData.requestRates.forEach((val, i) => {
+                const x = padding + (i / (perfData.requestRates.length - 1)) * dataWidth;
+                const y = height - padding - (val / maxRPS) * dataHeight;
+                path1 += ` ${x},${y}`;
+            });
+            
+            perfData.responseTimes.forEach((val, i) => {
+                const x = padding + (i / (perfData.responseTimes.length - 1)) * dataWidth;
+                const y = height - padding - (val / maxRT) * dataHeight;
+                path2 += ` ${x},${y}`;
+            });
+            
+            svg.innerHTML = `
+                <g style="stroke:#153927;stroke-width:2;fill:none">
+                    <path d="${path1}" />
+                </g>
+                <g style="stroke:#16a34a;stroke-width:2;fill:none">
+                    <path d="${path2}" />
+                </g>
+                <line x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}" style="stroke:#e5e7eb;stroke-width:1"/>
+            `;
+        }
+
+        // Initial load and polling
+        updateMetrics();
+        updateSessions();
+        updateAlerts();
+        updateHealth();
+        updatePerformance();
+
+        setInterval(updateMetrics, 3000);
+        setInterval(updateSessions, 5000);
+        setInterval(updateAlerts, 10000);
+        setInterval(updateHealth, 10000);
+        setInterval(updatePerformance, 15000);
+
+        document.getElementById('clearAlertsBtn')?.addEventListener('click', () => {
+            document.getElementById('alertsList').innerHTML = '<div style="padding:12px;color:#666;text-align:center">No alerts</div>';
+        });
+
+        window.addEventListener('resize', () => {
+            if (perfData.requestRates.length > 0) renderChart();
+        });
+    </script>
+
+    <script src="/js/ui.js"></script>
+</body>
+</html>

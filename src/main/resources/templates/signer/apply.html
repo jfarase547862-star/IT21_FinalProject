@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Apply Digital Signature</title>
+  <link rel="stylesheet" href="/css/app.css" />
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">
+        <img src="/images/IT21Logo.png" alt="IT21 logo" class="brand-logo" />
+      </div>
+      <div>
+        <p>Secure Document Authentication</p>
+      </div>
+    </div>
+    <nav class="nav-links">
+      <a class="nav-link" href="/dashboard/signer">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13a9 9 0 0 1 18 0"/><path d="M12 13l4-4"/><path d="M3 21h18"/></svg>
+        <span>Dashboard</span>
+      </a>
+      <a class="nav-link" href="/signer/upload">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M6 10l6-6 6 6"/><path d="M4 20h16"/></svg>
+        <span>Upload Documents</span>
+      </a>
+      <a class="nav-link active" href="/signer/apply">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10-10-4-4L4 16v4Z"/><path d="M13.5 6.5 17.5 10.5"/></svg>
+        <span>Apply Signature</span>
+      </a>
+      <a class="nav-link" href="/signer/results">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span>View Results</span>
+      </a>
+      <a class="nav-link" href="/signer/download">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12"/><path d="M6 12l6 6 6-6"/><path d="M4 20h16"/></svg>
+        <span>Download Signed Documents</span>
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <p>Secure • Fast • Reliable</p>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="content">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div>
+        <h2>Apply Digital Signature</h2>
+        <p class="eyebrow">Sign your documents using your assigned RSA-2048 private key.</p>
+      </div>
+      <div class="user-chip dropdown">
+        <button class="user-chip-button" type="button" aria-expanded="false" id="userChipBtn">
+          <span th:text="${userName} + ' (Owner)'">Juan Dela Cruz (Owner)</span>
+          <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 9l6 6 6-6" stroke="#153927" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="dropdown-menu hidden" id="userDropdown" role="menu">
+          <a class="dropdown-item logout-trigger" href="#">Log Out</a>
+        </div>
+      </div>
+    </header>
+
+    <div class="dashboard-grid">
+
+      <!-- Success banner -->
+      <div class="message-banner hidden" id="successBanner">
+        <p id="successText"></p>
+      </div>
+
+      <!-- Error banner -->
+      <div class="message-banner error-banner hidden" id="errorBanner">
+        <p id="errorText"></p>
+      </div>
+
+      <!-- Documents table -->
+      <article class="panel">
+        <div class="panel-header">
+          <h3>Pending Documents</h3>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Document</th>
+                <th>Uploaded</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="docsTable">
+              <tr id="loadingRow">
+                <td colspan="3" style="text-align:center; color:var(--muted); padding:28px 20px;">
+                  Loading pending documents…
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <!-- Signed result card -->
+      <article class="panel hidden" id="signedCard">
+        <div class="panel-header">
+          <div>
+            <h3 id="signedTitle">Signature Applied</h3>
+            <p class="supporting-copy">Document successfully signed with your RSA-2048 private key.</p>
+          </div>
+          <span class="status success">✓ Signed</span>
+        </div>
+        <div class="verification-results">
+          <div class="result-row">
+            <span>Document ID</span>
+            <strong id="signedId"></strong>
+          </div>
+          <div class="result-row">
+            <span>Algorithm</span>
+            <strong id="signedAlgorithm">RSA-2048 + SHA-256</strong>
+          </div>
+          <div class="result-row">
+            <span>Signed At</span>
+            <strong id="signedAt"></strong>
+          </div>
+        </div>
+        <div class="hash-section">
+          <label>SHA-256 Document Hash</label>
+          <div class="hash-box" id="signedHash">—</div>
+        </div>
+      </article>
+
+    </div>
+  </main>
+</div>
+
+<!-- Logout modal -->
+<div class="modal-overlay hidden" id="logoutModal">
+  <div class="modal-card">
+    <button class="modal-close-icon modal-close" type="button" aria-label="Close">✕</button>
+    <div class="modal-header">
+      <h3>Confirm Logout</h3>
+    </div>
+    <p>Are you sure you want to log out? Your current session will end and you will be returned to the login page.</p>
+    <div class="modal-actions">
+      <button type="button" class="ghost-button modal-close">Cancel</button>
+      <a class="primary-button modal-confirm" href="/logout">Log Out</a>
+    </div>
+  </div>
+</div>
+
+<script src="/js/ui.js"></script>
+<script>
+  /* ── User chip dropdown ── */
+  const chipBtn  = document.getElementById('userChipBtn');
+  const userDrop = document.getElementById('userDropdown');
+  chipBtn.addEventListener('click', () => {
+    const open = chipBtn.getAttribute('aria-expanded') === 'true';
+    chipBtn.setAttribute('aria-expanded', String(!open));
+    userDrop.classList.toggle('hidden', open);
+    chipBtn.querySelector('.chev').classList.toggle('open', !open);
+  });
+  document.addEventListener('click', e => {
+    if (!chipBtn.contains(e.target) && !userDrop.contains(e.target)) {
+      chipBtn.setAttribute('aria-expanded', 'false');
+      userDrop.classList.add('hidden');
+      chipBtn.querySelector('.chev').classList.remove('open');
+    }
+  });
+
+  /* ── Logout modal ── */
+  const logoutTrigger     = document.querySelector('.logout-trigger');
+  const logoutModal       = document.getElementById('logoutModal');
+  const modalCloseButtons = document.querySelectorAll('.modal-close');
+  logoutTrigger?.addEventListener('click', e => { e.preventDefault(); logoutModal.classList.remove('hidden'); });
+  modalCloseButtons.forEach(btn => btn.addEventListener('click', () => logoutModal.classList.add('hidden')));
+  logoutModal.addEventListener('click', e => { if (e.target === logoutModal) logoutModal.classList.add('hidden'); });
+
+  /* ── Real pending-documents + signing flow ── */
+  const docsTable     = document.getElementById('docsTable');
+  const successBanner = document.getElementById('successBanner');
+  const successText   = document.getElementById('successText');
+  const errorBanner   = document.getElementById('errorBanner');
+  const errorText     = document.getElementById('errorText');
+  const signedCard    = document.getElementById('signedCard');
+  const signedTitle   = document.getElementById('signedTitle');
+  const signedId      = document.getElementById('signedId');
+  const signedAt      = document.getElementById('signedAt');
+  const signedHash    = document.getElementById('signedHash');
+  const signedAlgorithm = document.getElementById('signedAlgorithm');
+
+  function hideBanners() {
+    successBanner.classList.add('hidden');
+    errorBanner.classList.add('hidden');
+  }
+
+  function formatUploadedAt(value) {
+    if (!value) return '—';
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return value;
+    return parsed.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+  }
+
+  async function loadPendingDocuments() {
+    try {
+      const res = await fetch('/signer/api/documents/pending', { headers: { 'Accept': 'application/json' } });
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error('Server did not return a valid response. Please make sure you are logged in.');
+      }
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.message || 'Could not load pending documents.');
+      }
+
+      const documents = await res.json();
+      renderDocumentsTable(documents);
+
+    } catch (err) {
+      docsTable.innerHTML = `
+        <tr><td colspan="3" style="text-align:center; color:var(--error); padding:28px 20px;">
+          ${err.message}
+        </td></tr>`;
+    }
+  }
+
+  function renderDocumentsTable(documents) {
+    if (!documents.length) {
+      docsTable.innerHTML = `
+        <tr><td colspan="3" style="text-align:center; color:var(--muted); padding:28px 20px;">
+          No pending documents. Upload one first.
+        </td></tr>`;
+      return;
+    }
+
+    docsTable.innerHTML = documents.map(doc => `
+      <tr data-id="${doc.document_id}">
+        <td>
+          <div class="user-info">
+            <span class="user-name">${doc.filename}</span>
+            <span class="user-email">${doc.document_id}</span>
+          </div>
+        </td>
+        <td class="user-email">${formatUploadedAt(doc.uploaded_at)}</td>
+        <td>
+          <div class="table-actions">
+            <button class="sign-btn primary-button"
+                    style="min-width:0;height:auto;padding:8px 16px;font-size:.85rem;display:inline-flex;align-items:center;gap:6px;">
+              ✍ Sign
+            </button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+
+    attachSignHandlers();
+  }
+
+  function attachSignHandlers() {
+    document.querySelectorAll('.sign-btn').forEach(btn => {
+      btn.addEventListener('click', () => handleSign(btn));
+    });
+  }
+
+  async function handleSign(btn) {
+    const row = btn.closest('tr');
+    const docId = row.dataset.id;
+    const name = row.querySelector('.user-name').textContent;
+
+    hideBanners();
+    signedCard.classList.add('hidden');
+    btn.disabled = true;
+    btn.textContent = 'Signing…';
+
+    try {
+      const res = await fetch(`/signer/api/documents/${encodeURIComponent(docId)}/sign`, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json' }
+      });
+
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error('Server did not return a valid response. Please check you are logged in and try again.');
+      }
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        throw new Error(result.message || 'Signing failed.');
+      }
+
+      // Success — remove row from the pending list, since it's now signed
+      row.remove();
+      if (!docsTable.querySelector('tr')) {
+        docsTable.innerHTML = `
+          <tr><td colspan="3" style="text-align:center; color:var(--muted); padding:28px 20px;">
+            No pending documents. Upload one first.
+          </td></tr>`;
+      }
+
+      successText.textContent = `Signature applied — ${name} (${result.documentId})`;
+      successBanner.classList.remove('hidden');
+
+      signedTitle.textContent = `Signature Applied — ${name}`;
+      signedId.textContent = result.documentId;
+      signedAlgorithm.textContent = result.algorithm;
+      signedAt.textContent = new Date(result.signedAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+      signedHash.textContent = result.hash;
+      signedCard.classList.remove('hidden');
+
+      successBanner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+      // Redirect to results page for this document so user can view full details
+      setTimeout(() => {
+        window.location.href = '/signer/results?documentId=' + encodeURIComponent(result.documentId);
+      }, 700);
+
+    } catch (err) {
+      errorText.textContent = err.message;
+      errorBanner.classList.remove('hidden');
+      btn.disabled = false;
+      btn.textContent = '✍ Sign';
+    }
+  }
+
+  loadPendingDocuments();
+</script>
+</body>
+</html>

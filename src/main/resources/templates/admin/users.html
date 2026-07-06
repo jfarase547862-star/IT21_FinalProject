@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Users</title>
+    <link rel="stylesheet" href="/css/app.css">
+    <style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+ 
+:root {
+    --primary: #2b5748;
+    --secondary: #9cb080;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --bg: #f9fafb;
+    --card: #ffffff;
+    --border: #e5e7eb;
+    --success: #22c55e;
+    --error: #ef4444;
+}
+ 
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    padding: 40px 24px;
+}
+.wrap { max-width: 920px; margin: 0 auto; }
+.panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: 0 16px 36px rgba(31, 41, 55, 0.06);
+}
+.panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+.panel-header h3 { margin: 0; }
+.primary-button {
+    background: var(--primary);
+    color: #fff;
+    border: 0;
+    border-radius: 14px;
+    padding: 12px 18px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+/* --- Sidebar icon styling --- */
+.nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    color: #5b6b63;
+}
+
+.nav-link .nav-icon {
+    color: #6b7c73;
+    flex-shrink: 0;
+    transition: color 0.15s ease;
+}
+
+.nav-link:hover .nav-icon {
+    color: #0b3b2e;
+}
+
+.nav-link.active {
+    color: #0b3b2e;
+    font-weight: 600;
+}
+
+.nav-link.active .nav-icon {
+    color: #0b3b2e;
+}
+ 
+/* ===== CONSOLIDATED, IMPROVED TABLE ===== */
+ 
+.table-wrapper {
+    overflow-x: auto;
+    margin-top: 4px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+}
+ 
+.data-table {
+    width: 100%;
+    min-width: 640px;
+    border-collapse: collapse;
+    border-spacing: 0;
+    background: #fff;
+}
+ 
+.data-table thead th {
+    position: sticky;
+    top: 0;
+    background: #f8faf8;
+    color: #52625a;
+    font-size: .78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    padding: 14px 20px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+ 
+.data-table tbody td {
+    padding: 14px 20px;
+    vertical-align: middle;
+    font-size: .92rem;
+    color: #374151;
+    border-bottom: 1px solid #f0f2f0;
+}
+ 
+.data-table tbody tr:last-child td { border-bottom: none; }
+ 
+.data-table tbody tr {
+    transition: background .15s ease;
+}
+ 
+.data-table tbody tr:hover {
+    background: #f6faf7;
+}
+ 
+/* identity cell: avatar + name/email */
+.user-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+ 
+.user-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: .82rem;
+    color: #fff;
+    background: linear-gradient(135deg, var(--primary), #4a7d68);
+}
+ 
+.user-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.user-name { font-weight: 600; color: #1f2937; font-size: .93rem; }
+.user-email {
+    font-size: .8rem;
+    color: var(--muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 220px;
+}
+ 
+.user-id {
+    font-family: 'SFMono-Regular', Consolas, monospace;
+    font-size: .78rem;
+    font-weight: 600;
+    color: var(--primary);
+    background: rgba(43, 87, 72, .07);
+    padding: 3px 8px;
+    border-radius: 6px;
+}
+ 
+/* role + status badges */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    font-size: .75rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.badge::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+}
+ 
+.badge.role-admin      { background: rgba(43, 87, 72, .12); color: var(--primary); }
+.badge.role-analyst     { background: rgba(156, 176, 128, .28); color: #5c6b3f; }
+.badge.role-staff       { background: rgba(107, 114, 128, .12); color: var(--muted); }
+ 
+.badge.status-active    { background: rgba(34, 197, 94, .12); color: #16803c; }
+.badge.status-inactive  { background: rgba(107, 114, 128, .12); color: var(--muted); }
+.badge.status-suspended { background: rgba(239, 68, 68, .12); color: #b91c1c; }
+ 
+.created-cell { color: var(--muted); font-size: .85rem; }
+ 
+.table-actions { display: flex; gap: 8px; }
+.icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    color: #334155;
+    background: #f8faf8;
+    cursor: pointer;
+    transition: transform .15s ease, background .15s ease;
+}
+.icon-button:hover { transform: translateY(-1px); }
+.icon-button svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2; fill: none; }
+.view-button { background: #eef6ed; color: #166534; border-color: rgba(22,101,52,.18); }
+.edit-button { background: rgba(43,87,72,.08); color: #1f433e; border-color: rgba(43,87,72,.2); }
+ 
+/* empty state */
+.empty-row td {
+    text-align: center;
+    padding: 48px 20px;
+    color: var(--muted);
+}
+</style>
+</head>
+<body>
+<div class="app-shell">
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-mark">
+                <img src="/images/IT21Logo.png" alt="IT21 logo" class="brand-logo">
+            </div>
+            <div>
+                <p>Secure Document Authentication</p>
+            </div>
+        </div>
+
+        <nav class="nav-links">
+            <a class="nav-link" href="/dashboard/admin">
+                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+                    <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+                    <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+                    <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+                </svg>
+                Dashboard
+            </a>
+            <a class="nav-link active" href="/admin/users">
+                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/>
+                    <circle cx="10" cy="7" r="4"/>
+                    <path d="M22.5 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16.5 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                Manage Users
+            </a>
+            <a class="nav-link" href="/admin/keys">
+                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="7.5" cy="15.5" r="5.5"/>
+                    <path d="M21 2l-9.6 9.6"/>
+                    <path d="M15.5 7.5l3 3L22 7l-3-3"/>
+                </svg>
+                Manage Keys
+            </a>
+            <a class="nav-link" href="/admin/logs">
+                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <path d="M14 2v6h6"/>
+                    <path d="M9 13h6M9 17h6M9 9h1"/>
+                </svg>
+                Logs &amp; Audits
+            </a>
+            <a class="nav-link" href="/admin/reports">
+                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="20" x2="12" y2="10"/>
+                    <line x1="18" y1="20" x2="18" y2="4"/>
+                    <line x1="6" y1="20" x2="6" y2="16"/>
+                </svg>
+                Reports
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <p>Secure • Fast • Reliable</p>
+        </div>
+    </aside>
+
+    <main class="content">
+        <header class="topbar">
+            <div>
+                <h2>Manage Users</h2>
+                <p class="eyebrow">Create, edit, and remove user accounts and roles.</p>
+            </div>
+            <div class="user-chip dropdown">
+                <button class="user-chip-button" type="button" aria-expanded="false">
+                    <span th:text="${userName} + ' (Admin)'"></span>
+                    <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 9l6 6 6-6" stroke="#153927" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <div class="dropdown-menu hidden" role="menu">
+                    <a class="dropdown-item logout-trigger" href="#">Log Out</a>
+                </div>
+            </div>
+        </header>
+
+        <section class="dashboard-grid">
+            <article class="panel">
+                <div class="panel-header">
+                    <h3>Users</h3>
+                    <button class="primary-button" type="button" id="openCreateUser">Create User</button>
+                </div>
+
+                <div th:if="${statusMessage}" class="message-banner success-banner">
+                    <p th:text="${statusMessage}"></p>
+                </div>
+                <div th:if="${errorMessage}" class="message-banner error-banner">
+                    <p th:text="${errorMessage}"></p>
+                </div>
+
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                          <tr>
+                            <th>User ID</th>
+                            <th>Name</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr th:if="${#lists.isEmpty(users)}">
+                            <td colspan="6" class="empty-row">No users found.</td>
+                          </tr>
+                          <tr th:each="user : ${users}">
+                            <td><span class="user-id" th:text="${user['user_id']}"></span></td>
+                            <td>
+                              <div class="user-cell">
+                                <div class="user-avatar" th:text="${#strings.substring(user.first_name, 0, 1)} + ${#strings.substring(user.last_name, 0, 1)}"></div>
+                                <div class="user-info">
+                                  <span class="user-name" th:text="${user.first_name} + ' ' + ${user.last_name}"></span>
+                                  <span class="user-email" th:text="${user.email}"></span>
+                                </div>
+                              </div>
+                            </td>
+                            <td>
+                              <span class="badge"
+                                    th:classappend="${#strings.toLowerCase(user.role_name)} == 'administrator' ? ' role-admin' : (${#strings.toLowerCase(user.role_name)} == 'security analyst' ? ' role-analyst' : ' role-staff')"
+                                    th:text="${user.role_name}"></span>
+                            </td>
+                            <td>
+                              <span class="badge"
+                                    th:classappend="${#strings.toLowerCase(user.status)} == 'active' ? ' status-active' : (${#strings.toLowerCase(user.status)} == 'suspended' ? ' status-suspended' : ' status-inactive')"
+                                    th:text="${user.status}"></span>
+                            </td>
+                            <td class="created-cell" th:text="${user.created_at}"></td>
+                            <td>
+                              <div class="table-actions">
+                                <button class="icon-button view-button"
+                                        title="View"
+                                        type="button"
+                                        th:attr="data-user-id=${user['user_id']}, data-first-name=${user.first_name}, data-last-name=${user.last_name}, data-email=${user.email}, data-role-id=${user.role_id}, data-status=${user.status}, data-created-at=${user.created_at}">
+                                  <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
+                                </button>
+                                <button class="icon-button edit-button"
+                                        title="Edit"
+                                        type="button"
+                                        th:attr="data-user-id=${user['user_id']}, data-first-name=${user.first_name}, data-last-name=${user.last_name}, data-email=${user.email}, data-role-id=${user.role_id}">
+                                  <svg viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="M15 5l4 4"/></svg>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+        </section>
+    </main>
+</div>
+
+<div class="modal-overlay hidden" id="createUserModal">
+    <div class="modal-card">
+        <button type="button" class="modal-close modal-close-icon" aria-label="Close">×</button>
+        <div class="modal-header modern-header">
+            <h3>Create User</h3>
+        </div>
+        <form method="post" action="/admin/users/create" data-password-policy>
+            <div class="form-grid">
+                <label>
+                    First name
+                    <input type="text" name="firstName" required>
+                </label>
+                <label>
+                    Last name
+                    <input type="text" name="lastName" required>
+                </label>
+                <label>
+                    Email
+                    <input type="email" name="email" required>
+                </label>
+                <label>
+                    Role
+                    <select name="roleId" required>
+                        <option value="" disabled selected>Select role</option>
+                        <option th:each="role : ${roles}"
+                                th:if="${role.role_name} != 'admin'"
+                                th:value="${role.role_id}"
+                                th:text="${role.role_name}"></option>
+                    </select>
+                </label>
+                <label>
+                    Password
+                    <div class="password-field">
+                        <input type="password" name="password" required>
+                        <button type="button" class="password-toggle" aria-label="Show password">Show</button>
+                    </div>
+                    <div class="password-policy">
+                        <p>Password requirements</p>
+                        <ul>
+                            <li data-policy-rule="length">At least 8 characters</li>
+                            <li data-policy-rule="uppercase">At least one uppercase letter</li>
+                            <li data-policy-rule="lowercase">At least one lowercase letter</li>
+                            <li data-policy-rule="digit">At least one digit</li>
+                            <li data-policy-rule="special">At least one special character</li>
+                            <li data-policy-rule="whitespace">No whitespace characters</li>
+                        </ul>
+                    </div>
+                </label>
+                <label>
+                    Confirm password
+                    <div class="password-field">
+                        <input type="password" name="confirmPassword" required>
+                        <button type="button" class="password-toggle" aria-label="Show password">Show</button>
+                    </div>
+                    <p class="policy-confirm-message"></p>
+                </label>
+            </div>
+            <div class="modal-actions full-span">
+                <button type="button" class="ghost-button modal-close">Cancel</button>
+                <button type="submit" class="primary-button">Create</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal-overlay hidden" id="viewUserModal">
+    <div class="modal-card">
+        <button type="button" class="modal-close modal-close-icon" aria-label="Close">×</button>
+        <div class="modal-header">
+            <h3>View User</h3>
+        </div>
+        <div class="form-grid">
+            <label>
+                First name
+                <input type="text" name="firstName" disabled>
+            </label>
+            <label>
+                Last name
+                <input type="text" name="lastName" disabled>
+            </label>
+            <label>
+                Email
+                <input type="email" name="email" disabled>
+            </label>
+            <label>
+                Role
+                <select name="roleId" disabled>
+                    <option value="" disabled>Select role</option>
+                    <option th:each="role : ${roles}"
+                            th:value="${role.role_id}"
+                            th:text="${role.role_name}"></option>
+                </select>
+            </label>
+            <label>
+                Status
+                <input type="text" name="status" disabled>
+            </label>
+            <label class="full-span">
+                Created
+                <input type="text" name="createdAt" disabled>
+            </label>
+        </div>
+        <div class="modal-actions full-span">
+            <button type="button" class="ghost-button modal-close">Close</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay hidden" id="editUserModal">
+    <div class="modal-card">
+        <button type="button" class="modal-close modal-close-icon" aria-label="Close">×</button>
+        <div class="modal-header">
+            <h3>Edit User</h3>
+        </div>
+        <form method="post" action="/admin/users/update-name">
+            <input type="hidden" name="userId">
+            <div class="form-grid">
+                <label>
+                    First name
+                    <input type="text" name="firstName" required>
+                </label>
+                <label>
+                    Last name
+                    <input type="text" name="lastName" required>
+                </label>
+                <label>
+                    Email
+                    <input type="email" name="email" disabled>
+                </label>
+                <label>
+                    Role
+                    <select name="roleId" disabled>
+                        <option value="" disabled>Select role</option>
+                        <option th:each="role : ${roles}"
+                                th:value="${role.role_id}"
+                                th:text="${role.role_name}"></option>
+                    </select>
+                </label>
+                <label>
+                    Status
+                    <input type="text" name="status" disabled>
+                </label>
+                <label class="full-span">
+                    Created
+                    <input type="text" name="createdAt" disabled>
+                </label>
+            </div>
+            <div class="modal-actions full-span">
+                <button type="button" class="ghost-button modal-close">Cancel</button>
+                <button type="submit" class="primary-button">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal-overlay hidden" id="logoutModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>Confirm Logout</h3>
+        </div>
+        <p>Are you sure you want to log out? Your current session will end and you will be returned to the login page.</p>
+        <div class="modal-actions">
+            <button type="button" class="ghost-button modal-close">Cancel</button>
+            <a class="primary-button modal-confirm" href="/logout">Log Out</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    const logoutTrigger = document.querySelector('.logout-trigger');
+    const logoutModal = document.getElementById('logoutModal');
+    const createUserModal = document.getElementById('createUserModal');
+    const viewUserModal = document.getElementById('viewUserModal');
+    const editUserModal = document.getElementById('editUserModal');
+    const openCreateUser = document.getElementById('openCreateUser');
+    const modalCloseButtons = document.querySelectorAll('.modal-close');
+    const passwordToggles = document.querySelectorAll('.password-toggle');
+    const viewButtons = document.querySelectorAll('.view-button');
+    const editButtons = document.querySelectorAll('.edit-button');
+
+    const hideAllModals = () => {
+        [logoutModal, createUserModal, viewUserModal, editUserModal].forEach(modal => {
+            if (modal) modal.classList.add('hidden');
+        });
+    };
+
+    const setSelectValue = (select, value) => {
+        if (!select) return;
+        Array.from(select.options).forEach(option => {
+            option.selected = option.value === value;
+        });
+    };
+
+    const populateViewModal = button => {
+        if (!viewUserModal) return;
+
+        const firstNameInput = viewUserModal.querySelector('input[name=firstName]');
+        const lastNameInput = viewUserModal.querySelector('input[name=lastName]');
+        const emailInput = viewUserModal.querySelector('input[name=email]');
+        const roleSelect = viewUserModal.querySelector('select[name=roleId]');
+        const statusInput = viewUserModal.querySelector('input[name=status]');
+        const createdAtInput = viewUserModal.querySelector('input[name=createdAt]');
+
+        firstNameInput.value = button.dataset.firstName || '';
+        lastNameInput.value = button.dataset.lastName || '';
+        emailInput.value = button.dataset.email || '';
+        setSelectValue(roleSelect, button.dataset.roleId || '');
+        statusInput.value = button.dataset.status || '';
+        createdAtInput.value = button.dataset.createdAt || '';
+    };
+
+    const populateEditModal = button => {
+        if (!editUserModal) return;
+
+        const userIdInput = editUserModal.querySelector('input[name=userId]');
+        const firstNameInput = editUserModal.querySelector('input[name=firstName]');
+        const lastNameInput = editUserModal.querySelector('input[name=lastName]');
+        const emailInput = editUserModal.querySelector('input[name=email]');
+        const roleSelect = editUserModal.querySelector('select[name=roleId]');
+        const passwordInput = editUserModal.querySelector('input[name=password]');
+        const confirmInput = editUserModal.querySelector('input[name=confirmPassword]');
+
+        userIdInput.value = button.dataset.userId || '';
+        firstNameInput.value = button.dataset.firstName || '';
+        lastNameInput.value = button.dataset.lastName || '';
+        emailInput.value = button.dataset.email || '';
+        setSelectValue(roleSelect, button.dataset.roleId || '');
+        if (passwordInput) passwordInput.value = '';
+        if (confirmInput) confirmInput.value = '';
+    };
+
+    logoutTrigger?.addEventListener('click', event => {
+        event.preventDefault();
+        logoutModal.classList.remove('hidden');
+    });
+
+    openCreateUser?.addEventListener('click', () => {
+        createUserModal.classList.remove('hidden');
+    });
+
+    viewButtons.forEach(button => {
+        button.addEventListener('click', event => {
+            event.preventDefault();
+            populateViewModal(button);
+            viewUserModal.classList.remove('hidden');
+        });
+    });
+
+    editButtons.forEach(button => {
+        button.addEventListener('click', event => {
+            event.preventDefault();
+            populateEditModal(button);
+            editUserModal.classList.remove('hidden');
+        });
+    });
+
+    modalCloseButtons.forEach(button => {
+        button.addEventListener('click', event => {
+            event.preventDefault();
+            event.stopPropagation();
+            const overlay = button.closest('.modal-overlay');
+            if (overlay) {
+                overlay.classList.add('hidden');
+            }
+        });
+    });
+
+    passwordToggles.forEach(toggle => {
+        toggle.addEventListener('click', () => {
+            const input = toggle.previousElementSibling;
+            if (input && input.type === 'password') {
+                input.type = 'text';
+                toggle.textContent = 'Hide';
+            } else if (input) {
+                input.type = 'password';
+                toggle.textContent = 'Show';
+            }
+        });
+    });
+
+    [logoutModal, createUserModal, viewUserModal, editUserModal].forEach(modal => {
+        modal?.addEventListener('click', event => {
+            if (event.target === modal) {
+                modal.classList.add('hidden');
+            }
+        });
+    });
+
+    const successBanner = document.querySelector('.success-banner');
+    if (successBanner) {
+        setTimeout(() => {
+            successBanner.classList.add('hidden');
+        }, 5000);
+    }
+</script>
+<script src="/js/password-policy.js"></script>
+<script src="/js/ui.js"></script>
+</body>
+</html>

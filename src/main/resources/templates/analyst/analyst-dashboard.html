@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Analyst Dashboard</title>
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<div class="app-shell">
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-mark">
+                <img src="/images/IT21Logo.png" alt="IT21 logo" class="brand-logo">
+            </div>
+            <div>
+                <p>Secure Document Authentication</p>
+            </div>
+        </div>
+
+        <nav class="nav-links">
+            <a class="nav-link active" href="/dashboard/analyst">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 13h8V3H3v10zM3 21h8v-6H3v6zM13 21h8v-10h-8v10zM13 3v6h8V3h-8z" fill="#153927"/></svg>
+                Dashboard
+            </a>
+            <a class="nav-link" href="/analyst/verify">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 12l2 2 4-4" stroke="#153927" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Verify Documents
+            </a>
+            <a class="nav-link" href="/analyst/history">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 12A9 9 0 1 1 12 3" stroke="#153927" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 7v5l4 2" stroke="#153927" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Verification History
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <p>Secure • Fast • Reliable</p>
+        </div>
+    </aside>
+
+    <main class="content">
+        <header class="topbar">
+           <div>
+            <h2>Dashboard</h2>
+           <p class="eyebrow">Monitor document verification activities and system security events. </p>
+            </div>
+            <div class="user-chip dropdown">
+                <button class="user-chip-button" type="button" aria-expanded="false">
+                    <span th:text="${userName} + ' (Analyst)'"></span>
+                    <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 9l6 6 6-6" stroke="#153927" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <div class="dropdown-menu hidden" role="menu">
+                    <a class="dropdown-item logout-trigger" href="#">Log Out</a>
+                </div>
+            </div>
+        </header>
+
+        <section class="dashboard-grid">
+            <article class="panel dashboard-panel" id="dashboard">
+         <div class="panel-header">
+    <h3>Security Overview</h3>
+    <button class="ghost-button" type="button">
+        Run Audit
+    </button>
+</div>
+
+<div class="stats-grid">
+
+    <div class="stat-card">
+        <span>Verified Documents</span>
+        <strong th:text="${stats.verifiedDocuments}">0</strong>
+    </div>
+
+    <div class="stat-card">
+        <span>Pending Review</span>
+        <strong th:text="${stats.pendingDocuments}">0</strong>
+    </div>
+
+    <div class="stat-card error-card">
+        <span>Recent Alerts</span>
+        <strong th:text="${stats.recentAlerts}">0</strong>
+    </div>
+
+</div>
+
+<div class="activity-list" id="activity">
+
+    <h4>Recent Security Activity</h4>
+
+    <div class="activity-item" th:each="entry : ${recentActivity}">
+        <div>
+            <strong th:text="${entry.description}">Activity</strong>
+            <span th:text="${entry.event_type}">INFO</span>
+        </div>
+        <time th:text="${entry.created_at}">Now</time>
+    </div>
+
+    <div class="activity-item" th:if="${#lists.isEmpty(recentActivity)}">
+        <div>
+            <strong>No recent activity.</strong>
+            <span>INFO</span>
+        </div>
+        <time>—</time>
+    </div>
+
+</div>
+            </article>
+        </section>
+    </main>
+</div>
+
+<div class="modal-overlay hidden" id="logoutModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>Confirm Logout</h3>
+        </div>
+        <p>Are you sure you want to log out? Your current session will end and you will be returned to the login page.</p>
+        <div class="modal-actions">
+            <button type="button" class="ghost-button modal-close">Cancel</button>
+            <a class="primary-button modal-confirm" href="/logout">Log Out</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    const logoutTrigger = document.querySelector('.logout-trigger');
+    const logoutModal = document.getElementById('logoutModal');
+    const modalCloseButtons = document.querySelectorAll('.modal-close');
+
+    logoutTrigger?.addEventListener('click', event => {
+        event.preventDefault();
+        logoutModal.classList.remove('hidden');
+    });
+
+    modalCloseButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            logoutModal.classList.add('hidden');
+        });
+    });
+
+    logoutModal.addEventListener('click', event => {
+        if (event.target === logoutModal) {
+            logoutModal.classList.add('hidden');
+        }
+    });
+</script>
+<script>
+    // Real-time recent security activity using existing server endpoints
+    (function() {
+        const activityList = document.getElementById('activity');
+        if (!activityList) return;
+
+        const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+        function renderLogLine(line) {
+            // expected log format: "YYYY-MM-DD HH:MM:SS LEVEL  [source] - message"
+            const m = line.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\s+(\w+)\s+\[.*?\]\s+-\s+(.*)$/);
+            let timeText = '';
+            let level = '';
+            let message = line;
+            if (m) {
+                timeText = m[1];
+                level = m[2];
+                message = m[3];
+            }
+
+            const item = document.createElement('div');
+            item.className = 'activity-item';
+            item.innerHTML = `<div><strong>${escapeHtml(message)}</strong><span>${escapeHtml(level)}</span></div><time>${escapeHtml(timeText || 'Now')}</time>`;
+            return item;
+        }
+
+        const recentSet = new Set();
+
+        async function loadRecentActivity() {
+            try {
+                const res = await fetch('/admin/api/logs?lines=20');
+                if (!res.ok) throw new Error('Failed to fetch logs');
+                const list = await res.json();
+                // clear existing static items
+                const existing = activityList.querySelectorAll('.activity-item');
+                existing.forEach(n => n.remove());
+                // server returns oldest-first; show newest at top (under header)
+                const header = activityList.querySelector('h4');
+                const insertBeforeNode = header ? header.nextElementSibling : null;
+                list.reverse().forEach(line => {
+                    // add to dedupe set and render
+                    recentSet.add(line);
+                    const node = renderLogLine(line);
+                    if (insertBeforeNode) activityList.insertBefore(node, insertBeforeNode);
+                    else activityList.appendChild(node);
+                });
+            } catch (e) {
+                console.warn('Could not load recent activity', e);
+            }
+        }
+
+        let es = null;
+        function startStream() {
+            if (!window.EventSource) return;
+            if (es) return;
+            es = new EventSource('/admin/api/logs/stream');
+            es.onmessage = ev => {
+                const line = ev.data;
+                if (recentSet.has(line)) return; // ignore duplicates
+                recentSet.add(line);
+                const node = renderLogLine(line);
+                const header = activityList.querySelector('h4');
+                const firstEl = header ? header.nextElementSibling : null;
+                if (firstEl) activityList.insertBefore(node, firstEl);
+                else activityList.appendChild(node);
+                // keep only 20 items
+                const items = activityList.querySelectorAll('.activity-item');
+                if (items.length > 20) items[items.length - 1].remove();
+            };
+            es.onerror = () => {
+                try { es.close(); } catch(_) {}
+                es = null;
+                // retry after a delay
+                setTimeout(startStream, 3000);
+            };
+        }
+
+        loadRecentActivity();
+        startStream();
+    })();
+</script>
+<script src="/js/ui.js"></script>
+</body>
+</html>

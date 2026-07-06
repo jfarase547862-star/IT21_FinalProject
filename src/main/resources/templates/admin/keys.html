@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Keys</title>
+    <link rel="stylesheet" href="/css/app.css">
+    <style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+
+:root {
+    --primary: #2b5748;
+    --secondary: #9cb080;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --bg: #f9fafb;
+    --card: #ffffff;
+    --border: #e5e7eb;
+    --success: #22c55e;
+    --error: #ef4444;
+}
+
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    padding: 32px 24px 40px;
+}
+
+.panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 24px 24px 20px;
+    box-shadow: 0 16px 36px rgba(31, 41, 55, 0.06);
+}
+.panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.panel-header h3 { margin: 0 0 4px; }
+.panel-header .eyebrow { margin: 0; }
+.primary-button {
+    background: var(--primary);
+    color: #fff;
+    border: 0;
+    border-radius: 14px;
+    padding: 12px 18px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.secondary-button {
+    background: #f8faf8;
+    color: #334155;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 8px 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.table-wrapper {
+    overflow-x: auto;
+    margin-top: 6px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+}
+.data-table {
+    width: 100%;
+    min-width: 640px;
+    border-collapse: collapse;
+    border-spacing: 0;
+    background: #fff;
+}
+.data-table thead th {
+    position: sticky;
+    top: 0;
+    background: #f8faf8;
+    color: #52625a;
+    font-size: .78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    padding: 14px 20px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+.data-table tbody td {
+    padding: 13px 20px;
+    vertical-align: middle;
+    font-size: .92rem;
+    color: #374151;
+    border-bottom: 1px solid #f0f2f0;
+}
+.data-table tbody tr:last-child td { border-bottom: none; }
+.data-table tbody tr { transition: background .15s ease; }
+.data-table tbody tr:hover { background: #f6faf7; }
+.status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    font-size: .75rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.status::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+}
+.status.success { background: rgba(34, 197, 94, .12); color: #16803c; }
+.status.revoked { background: rgba(239, 68, 68, .12); color: #b91c1c; }
+.table-actions { display: flex; gap: 8px; }
+.notification {
+    margin: 0 0 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-size: .9rem;
+    font-weight: 600;
+}
+.notification.success { background: rgba(34, 197, 94, .12); color: #16803c; }
+.notification.error { background: rgba(239, 68, 68, .12); color: #b91c1c; }
+.notification.hidden { display: none; }
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    color: #5b6b63;
+}
+
+.nav-link .nav-icon {
+    color: #6b7c73;
+    flex-shrink: 0;
+    transition: color 0.15s ease;
+}
+
+.nav-link:hover .nav-icon {
+    color: #0b3b2e;
+}
+
+.nav-link.active {
+    color: #0b3b2e;
+    font-weight: 600;
+}
+
+.nav-link.active .nav-icon {
+    color: #0b3b2e;
+}
+ 
+    </style>
+</head>
+<body>
+<div class="app-shell">
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-mark">
+                <img src="/images/IT21Logo.png" alt="IT21 logo" class="brand-logo">
+            </div>
+            <div>
+                <p>Secure Document Authentication</p>
+            </div>
+        </div>
+
+   <nav class="nav-links">
+            <a class="nav-link" href="/dashboard/admin">
+                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+                    <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+                    <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+                    <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+                </svg>
+                Dashboard
+            </a>
+            <a class="nav-link" href="/admin/users">
+                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/>
+                    <circle cx="10" cy="7" r="4"/>
+                    <path d="M22.5 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16.5 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                Manage Users
+            </a>
+            <a class="nav-link active" href="/admin/keys">
+                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="7.5" cy="15.5" r="5.5"/>
+                    <path d="M21 2l-9.6 9.6"/>
+                    <path d="M15.5 7.5l3 3L22 7l-3-3"/>
+                </svg>
+                Manage Keys
+            </a>
+            <a class="nav-link" href="/admin/logs">
+                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <path d="M14 2v6h6"/>
+                    <path d="M9 13h6M9 17h6M9 9h1"/>
+                </svg>
+                Logs &amp; Audits
+            </a>
+            <a class="nav-link" href="/admin/reports">
+                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="20" x2="12" y2="10"/>
+                    <line x1="18" y1="20" x2="18" y2="4"/>
+                    <line x1="6" y1="20" x2="6" y2="16"/>
+                </svg>
+                Reports
+            </a>
+        </nav>
+
+
+        <div class="sidebar-footer">
+            <p>Secure • Fast • Reliable</p>
+        </div>
+    </aside>
+
+    <main class="content">
+        <header class="topbar">
+            <div>
+                <h2>Manage Cryptographic Keys</h2>
+                <p class="eyebrow">Rotate and manage keys used for verification signatures.</p>
+            </div>
+            <div class="user-chip dropdown">
+                <button class="user-chip-button" type="button" aria-expanded="false">
+                    <span th:text="${userName} + ' (Admin)'"></span>
+                    <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 9l6 6 6-6" stroke="#153927" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <div class="dropdown-menu hidden" role="menu">
+                    <a class="dropdown-item logout-trigger" href="#">Log Out</a>
+                </div>
+            </div>
+        </header>
+
+        <section class="dashboard-grid">
+            <article class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h3>Key Management</h3>
+                        <p class="eyebrow">Rotate and revoke keys used for verification signatures.</p>
+                    </div>
+                    <button class="primary-button" id="generateKeyButton" type="button">Generate New Key</button>
+                </div>
+
+                <div class="table-wrapper">
+                    <div class="notification hidden" id="keyNotification"></div>
+
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Key ID</th>
+                                <th>Type</th>
+                                <th>Created</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="keyTableBody"></tbody>
+                    </table>
+                </div>
+            </article>
+        </section>
+    </main>
+    <div class="modal-overlay hidden" id="logoutModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Confirm Logout</h3>
+            </div>
+            <p>Are you sure you want to log out? Your current session will end and you will be returned to the login page.</p>
+            <div class="modal-actions">
+                <button type="button" class="ghost-button modal-close">Cancel</button>
+                <a class="primary-button modal-confirm" href="/logout">Log Out</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const logoutTrigger = document.querySelector('.logout-trigger');
+        const logoutModal = document.getElementById('logoutModal');
+        const modalCloseButtons = document.querySelectorAll('.modal-close');
+        const generateKeyButton = document.getElementById('generateKeyButton');
+        const keyTableBody = document.getElementById('keyTableBody');
+        const keyNotification = document.getElementById('keyNotification');
+
+        const keyStore = [
+            { id: 'KEY-001', type: 'RSA-4096', created: '2026-06-10', status: 'Active' },
+            { id: 'KEY-002', type: 'ECDSA-P384', created: '2026-05-28', status: 'Active' }
+        ];
+
+        function renderKeyTable() {
+            keyTableBody.innerHTML = keyStore.map((key, index) => `
+                <tr>
+                    <td>${key.id}</td>
+                    <td>${key.type}</td>
+                    <td>${key.created}</td>
+                    <td><span class="status ${key.status === 'Revoked' ? 'revoked' : 'success'}">${key.status}</span></td>
+                    <td class="table-actions">
+                        <button class="secondary-button revoke-button" data-index="${index}" type="button">Revoke</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            document.querySelectorAll('.revoke-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    const keyIndex = Number(button.dataset.index);
+                    revokeKey(keyIndex);
+                });
+            });
+        }
+
+        function showNotification(message, type = 'success') {
+            keyNotification.textContent = message;
+            keyNotification.className = `notification ${type}`;
+            keyNotification.classList.remove('hidden');
+            setTimeout(() => keyNotification.classList.add('hidden'), 4000);
+        }
+
+        function revokeKey(index) {
+            keyStore[index].status = 'Revoked';
+            renderKeyTable();
+            showNotification(`Key ${keyStore[index].id} revoked.`);
+        }
+
+        function generateKey() {
+            const nextId = `KEY-${String(keyStore.length + 1).padStart(3, '0')}`;
+            const newKey = {
+                id: nextId,
+                type: 'AES-256',
+                created: new Date().toISOString().slice(0, 10),
+                status: 'Active'
+            };
+            keyStore.unshift(newKey);
+            renderKeyTable();
+            showNotification(`New key ${newKey.id} generated.`);
+        }
+
+        logoutTrigger?.addEventListener('click', event => {
+            event.preventDefault();
+            logoutModal.classList.remove('hidden');
+        });
+
+        modalCloseButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                logoutModal.classList.add('hidden');
+            });
+        });
+
+        logoutModal.addEventListener('click', event => {
+            if (event.target === logoutModal) {
+                logoutModal.classList.add('hidden');
+            }
+        });
+
+        generateKeyButton?.addEventListener('click', generateKey);
+        renderKeyTable();
+    </script>
+
+    <script src="/js/ui.js"></script>
+</body>
+</html>

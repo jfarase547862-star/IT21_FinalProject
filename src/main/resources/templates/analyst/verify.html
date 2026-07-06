@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Documents</title>
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+    <div class="app-shell">
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-mark">
+                <img src="/images/IT21Logo.png" alt="IT21 logo" class="brand-logo">
+            </div>
+            <div>
+                <p>Secure Document Authentication</p>
+            </div>
+        </div>
+
+        <nav class="nav-links">
+            <a class="nav-link" href="/dashboard/analyst">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 13h8V3H3v10zM3 21h8v-6H3v6zM13 21h8v-10h-8v10zM13 3v6h8V3h-8z" fill="#153927"/></svg>
+                Dashboard
+            </a>
+            <a class="nav-link active" href="/analyst/verify">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 12l2 2 4-4" stroke="#153927" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Verify Documents
+            </a>
+            <a class="nav-link" href="/analyst/history">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 12A9 9 0 1 1 12 3" stroke="#153927" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 7v5l4 2" stroke="#153927" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Verification History
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <p>Secure • Fast • Reliable</p>
+        </div>
+    </aside>
+  <main class="content">
+     <header class="topbar">
+        <div>
+            <h2>Verify Documents</h2>
+           <p class="eyebrow">Monitor document verification activities and system security events. </p>
+         </div>
+        <div class="user-chip dropdown">
+            <button class="user-chip-button" type="button" aria-expanded="false">
+                <span th:text="${userName} + ' (Analyst)'"></span>
+                <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 9l6 6 6-6" stroke="#153927" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div class="dropdown-menu hidden" role="menu">
+                <a class="dropdown-item logout-trigger" href="#">Log Out</a>
+            </div>
+     </header>
+   
+     <div class="modal-overlay hidden" id="logoutModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>Confirm Logout</h3>
+        </div>
+        <p>Are you sure you want to log out? Your current session will end and you will be returned to the login page.</p>
+        <div class="modal-actions">
+            <button type="button" class="ghost-button modal-close">Cancel</button>
+            <a class="primary-button modal-confirm" href="/logout">Log Out</a>
+        </div>
+    </div>
+</div>
+
+<section class="dashboard-grid">
+    <!-- Upload Card -->
+    <article class="panel">
+        <div class="panel-header">
+            <div>
+                <h3>Upload Document to Verify</h3>
+                <p class="supporting-copy">
+                    Upload a PDF or DOCX document that has already been signed. The system will verify its signature and integrity.
+                </p>
+            </div>
+        </div>
+
+        <div id="verifyError" class="message-banner error-banner hidden">
+            <p id="verifyErrorText"></p>
+        </div>
+
+        <form id="verifyForm"
+              method="post"
+              enctype="multipart/form-data"
+              action="/verify">
+            <label class="upload-area">
+                <input
+                        id="fileInput"
+                        type="file"
+                        name="document"
+                        accept=".pdf,.doc,.docx"
+                        hidden>
+                <div class="upload-content">
+                    <div class="upload-icon">
+                        📄
+                    </div>
+                    <h4>Drag & Drop your document</h4>
+                    <p>
+                        PDF or DOCX (Maximum 25 MB)
+                    </p>
+                    <span class="upload-button">
+                        Choose File
+                    </span>
+                    <div
+                            id="selectedFile"
+                            class="selected-file">
+                        No file selected
+                    </div>
+                </div>
+            </label>
+            <button
+                    id="verifyButton"
+                    type="submit"
+                    class="primary-button verify-button"
+                    disabled>
+                Verify Document
+            </button>
+        </form>
+    </article>
+
+    <!-- Verification Result Modal -->
+    <div class="modal-overlay hidden" id="resultModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Verification Result</h3>
+                <span class="status" id="resultBadge">
+                    <span id="resultBadgeText">VALID</span>
+                </span>
+            </div>
+            <p class="supporting-copy" id="resultSummary">
+                Verification completed.
+            </p>
+            <div class="verification-results">
+                <div class="result-row">
+                    <span>RSA Signature</span>
+                    <strong id="rowRsa">—</strong>
+                </div>
+                <div class="result-row">
+                    <span>SHA-256 Integrity</span>
+                    <strong id="rowIntegrity">—</strong>
+                </div>
+                <div class="result-row">
+                    <span>Certificate Status</span>
+                    <strong id="rowCertificate">—</strong>
+                </div>
+                <div class="result-row">
+                    <span>Signer</span>
+                    <strong id="rowSigner">—</strong>
+                </div>
+                <div class="result-row">
+                    <span>Timestamp</span>
+                    <strong id="rowTimestamp">—</strong>
+                </div>
+                <div class="hash-section">
+                    <label>
+                        SHA-256 Document Hash
+                    </label>
+                    <div class="hash-box" id="rowHash">—</div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="ghost-button" id="verifyNewBtn">Verify New File</button>
+                <a class="primary-button" href="/dashboard/analyst">Exit</a>
+            </div>
+        </div>
+    </div>
+
+   
+</section>
+</main>
+    </div>
+
+    <script>
+    const fileInput = document.getElementById("fileInput");
+    const selectedFile = document.getElementById("selectedFile");
+    const verifyForm = document.getElementById("verifyForm");
+    const verifyButton = document.getElementById("verifyButton");
+    const resultModal = document.getElementById("resultModal");
+    const resultBadge = document.getElementById("resultBadge");
+    const resultBadgeText = document.getElementById("resultBadgeText");
+    const resultSummary = document.getElementById("resultSummary");
+    const verifyError = document.getElementById("verifyError");
+    const verifyErrorText = document.getElementById("verifyErrorText");
+    const verifyNewBtn = document.getElementById("verifyNewBtn");
+
+    const rowRsa = document.getElementById("rowRsa");
+    const rowIntegrity = document.getElementById("rowIntegrity");
+    const rowCertificate = document.getElementById("rowCertificate");
+    const rowSigner = document.getElementById("rowSigner");
+    const rowTimestamp = document.getElementById("rowTimestamp");
+    const rowHash = document.getElementById("rowHash");
+
+    fileInput.addEventListener("change", function () {
+        if (this.files.length > 0) {
+            selectedFile.textContent = this.files[0].name;
+            verifyButton.disabled = false;
+        } else {
+            selectedFile.textContent = "No file selected";
+            verifyButton.disabled = true;
+        }
+        hideError();
+        resultModal.classList.add("hidden");
+    });
+
+    verifyForm.addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        if (!fileInput.files.length) return;
+
+        hideError();
+        resultModal.classList.add("hidden");
+        verifyButton.disabled = true;
+        verifyButton.textContent = "Verifying...";
+
+        try {
+            const formData = new FormData();
+            formData.append("document", fileInput.files[0]);
+
+            const response = await fetch("/analyst/verify", {
+                method: "POST",
+                body: formData,
+                headers: { "Accept": "application/json" }
+            });
+
+            if (!response.ok) {
+                const errBody = await response.json().catch(() => null);
+                throw new Error(errBody?.message || `Verification failed (HTTP ${response.status})`);
+            }
+
+            const result = await response.json();
+            renderResult(result);
+
+        } catch (err) {
+            showError(err.message || "Something went wrong while verifying this document. Please try again.");
+        } finally {
+            verifyButton.disabled = false;
+            verifyButton.textContent = "Verify Signature";
+        }
+    });
+
+    verifyNewBtn.addEventListener("click", function () {
+        resultModal.classList.add("hidden");
+        fileInput.value = "";
+        selectedFile.textContent = "No file selected";
+        verifyButton.disabled = true;
+        hideError();
+    });
+
+    function renderResult(result) {
+        const boolLabel = (value, trueWord, falseWord) =>
+            value ? trueWord : falseWord;
+
+        rowRsa.textContent = boolLabel(result.rsaSignatureValid, "Valid", "Invalid");
+        rowRsa.className = result.rsaSignatureValid ? "success-text" : "error-text";
+
+        rowIntegrity.textContent = boolLabel(result.integrityMatch, "Match", "Mismatch");
+        rowIntegrity.className = result.integrityMatch ? "success-text" : "error-text";
+
+        rowCertificate.textContent = boolLabel(result.certificateValid, "Valid", "Invalid");
+        rowCertificate.className = result.certificateValid ? "success-text" : "error-text";
+
+        rowSigner.textContent = result.signer || "Unknown";
+        rowTimestamp.textContent = result.timestamp || "—";
+        rowHash.textContent = result.hash || "—";
+
+        applyStatusBadge(result.status);
+
+        resultModal.classList.remove("hidden");
+    }
+
+    function applyStatusBadge(status) {
+        resultBadge.classList.remove("success", "error", "warning");
+
+        if (status === "VALID") {
+            resultBadge.classList.add("success");
+            resultBadgeText.textContent = "✓ VALID";
+            resultSummary.textContent = "Signature and document integrity both verified successfully.";
+        } else if (status === "TAMPERED") {
+            resultBadge.classList.add("warning");
+            resultBadgeText.textContent = "⚠ TAMPERED";
+            resultSummary.textContent = "The document has been modified after it was signed.";
+        } else {
+            resultBadge.classList.add("error");
+            resultBadgeText.textContent = "✕ INVALID";
+            resultSummary.textContent = "The signature could not be validated against the signer's public key.";
+        }
+    }
+
+    function showError(message) {
+        verifyErrorText.textContent = message;
+        verifyError.classList.remove("hidden");
+    }
+
+    function hideError() {
+        verifyError.classList.add("hidden");
+    }
+
+    const logoutTrigger = document.querySelector('.logout-trigger');
+    const logoutModal = document.getElementById('logoutModal');
+    const modalCloseButtons = document.querySelectorAll('.modal-close');
+
+    logoutTrigger?.addEventListener('click', event => {
+        event.preventDefault();
+        logoutModal.classList.remove('hidden');
+    });
+
+    modalCloseButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            logoutModal.classList.add('hidden');
+        });
+    });
+
+    logoutModal.addEventListener('click', event => {
+        if (event.target === logoutModal) {
+            logoutModal.classList.add('hidden');
+        }
+    });
+
+    resultModal.addEventListener('click', event => {
+        if (event.target === resultModal) {
+            resultModal.classList.add('hidden');
+        }
+    });
+    </script>
+    <script src="/js/ui.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Results History</title>
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+    <div class="app-shell">
+         <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-mark">
+                <img src="/images/IT21Logo.png" alt="IT21 logo" class="brand-logo">
+            </div>
+            <div>
+                <p>Secure Document Authentication</p>
+            </div>
+        </div>
+
+        <nav class="nav-links">
+            <a class="nav-link" href="/dashboard/analyst">Dashboard</a>
+            <a class="nav-link " href="/analyst/verify">Verify Documents</a>
+            <a class="nav-link active" href="/analyst/history">Verification History</a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <p>Secure • Fast • Reliable</p>
+        </div>
+    </aside>
+    <main class="content">
+        <header class="topbar">
+    <div>
+        <h2>Verification History</h2>
+        <p class="eyebrow">
+            Review previous document verification activities for auditing and investigation.
+        </p>
+    </div>
+
+    <div class="user-chip dropdown">
+        <button class="user-chip-button" type="button">
+            <span th:text="${userName} + ' (Security Analyst)'"></span>
+
+            <svg class="chev" width="12" height="12" viewBox="0 0 24 24">
+                <path d="M6 9l6 6 6-6"
+                      stroke="#153927"
+                      stroke-width="2"
+                      fill="none"/>
+            </svg>
+        </button>
+
+        <div class="dropdown-menu hidden">
+            <a class="dropdown-item logout-trigger" href="#">
+                Log Out
+            </a>
+        </div>
+    </div>
+</header>
+
+<div class="modal-overlay hidden" id="logoutModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>Confirm Logout</h3>
+        </div>
+        <p>Are you sure you want to log out? Your current session will end and you will be returned to the login page.</p>
+        <div class="modal-actions">
+            <button type="button" class="ghost-button modal-close">Cancel</button>
+            <a class="primary-button modal-confirm" href="/logout">Log Out</a>
+        </div>
+    </div>
+</div>
+
+<!-- Record Detail Modal -->
+<div class="modal-overlay hidden" id="detailModal">
+    <div class="modal-card">
+        <button type="button" class="modal-close modal-close-icon" aria-label="Close">×</button>
+        <div class="modal-header">
+            <h3>Verification Record</h3>
+            <p id="detailSubtitle"></p>
+        </div>
+        <div class="verification-results">
+            <div class="result-row">
+                <span>Document ID</span>
+                <strong id="detailDocId">—</strong>
+            </div>
+            <div class="result-row">
+                <span>Outcome</span>
+                <strong id="detailOutcome">—</strong>
+            </div>
+            <div class="result-row">
+                <span>RSA Signature</span>
+                <strong id="detailRsa">—</strong>
+            </div>
+            <div class="result-row">
+                <span>SHA-256 Integrity</span>
+                <strong id="detailIntegrity">—</strong>
+            </div>
+            <div class="result-row">
+                <span>Certificate Status</span>
+                <strong id="detailCertificate">—</strong>
+            </div>
+            <div class="result-row">
+                <span>Signer</span>
+                <strong id="detailSigner">—</strong>
+            </div>
+            <div class="result-row">
+                <span>Verified By</span>
+                <strong id="detailVerifiedBy">—</strong>
+            </div>
+            <div class="result-row">
+                <span>Verified At</span>
+                <strong id="detailTimestamp">—</strong>
+            </div>
+            <div class="hash-section">
+                <label>SHA-256 Document Hash</label>
+                <div class="hash-box" id="detailHash">—</div>
+            </div>
+        </div>
+        <div class="modal-actions full-span">
+            <button type="button" class="ghost-button modal-close">Close</button>
+        </div>
+    </div>
+</div>
+
+<section class="dashboard-grid">
+    <!-- Search -->
+    <article class="panel">
+        <div class="table-toolbar">
+            <div class="search-box">
+                <input
+                        type="text"
+                        id="historySearch"
+                        placeholder="Search Document ID...">
+            </div>
+            <select id="statusFilter">
+                <option value="">All Results</option>
+                <option value="VALID">Authentic</option>
+                <option value="INVALID">Failed</option>
+                <option value="TAMPERED">Tampered</option>
+            </select>
+        </div>
+    </article>
+    <!-- Table -->
+    <article class="panel">
+        <div class="panel-header">
+            <div>
+                <h3>Verification Records</h3>
+                <p class="supporting-copy">
+                    Recent document verification history.
+                </p>
+            </div>
+        </div>
+        <div class="table-wrapper">
+            <table class="modern-table" id="historyTable">
+                <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Document ID</th>
+                    <th>Signer</th>
+                    <th>Outcome</th>
+                    <th>Verified By</th>
+                    <th>Action</th>
+                </tr>
+                </thead>
+                <tbody id="historyBody"></tbody>
+            </table>
+        </div>
+    </article>
+</section>
+    </main>
+    </div>
+    <script>
+const historyBody = document.getElementById('historyBody');
+const search = document.getElementById('historySearch');
+const statusFilter = document.getElementById('statusFilter');
+const MAX_ROWS = 20;
+
+// keyed by record id so the View button can look up full detail without a second request
+let recordsById = new Map();
+let debounceTimer = null;
+
+const OUTCOME_META = {
+    VALID:    { label: 'Authentic', className: 'success' },
+    TAMPERED: { label: 'Tampered',  className: 'warning' },
+    INVALID:  { label: 'Failed',    className: 'error' }
+};
+
+function formatTimestamp(isoString) {
+    if (!isoString) return '—';
+    const parsed = new Date(isoString);
+    if (Number.isNaN(parsed.getTime())) return isoString;
+    return parsed.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+    });
+}
+
+function outcomeMeta(status) {
+    return OUTCOME_META[status] || { label: status || 'Unknown', className: '' };
+}
+
+function renderRows(records) {
+    recordsById = new Map(records.map(r => [r.id, r]));
+
+    if (records.length === 0) {
+        historyBody.innerHTML = `
+            <tr class="empty-row">
+                <td colspan="6">No verification records match your search.</td>
+            </tr>`;
+        return;
+    }
+
+    historyBody.innerHTML = records.map(record => {
+        const outcome = outcomeMeta(record.status);
+        return `
+            <tr>
+                <td>${formatTimestamp(record.verifiedAt)}</td>
+                <td>${record.documentId}</td>
+                <td>${record.signer || 'Unknown'}</td>
+                <td><span class="status ${outcome.className}">${outcome.label}</span></td>
+                <td>${record.verifiedBy || '—'}</td>
+                <td><button class="table-button" type="button" data-record-id="${record.id}">View</button></td>
+            </tr>
+        `;
+    }).join('');
+}
+
+async function loadHistory() {
+    const params = new URLSearchParams({ limit: MAX_ROWS });
+    if (search.value.trim()) params.set('documentId', search.value.trim());
+    if (statusFilter.value) params.set('status', statusFilter.value);
+
+    try {
+        const res = await fetch(`/analyst/api/verifications?${params.toString()}`, {
+            headers: { 'Accept': 'application/json' }
+        });
+        if (!res.ok) throw new Error('Could not load verification history');
+        const records = await res.json();
+        renderRows(records);
+    } catch (error) {
+        console.warn('Unable to load verification history', error);
+        historyBody.innerHTML = `
+            <tr class="empty-row">
+                <td colspan="6">Couldn't load history right now. Please refresh the page.</td>
+            </tr>`;
+    }
+}
+
+function debouncedLoad() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(loadHistory, 300);
+}
+
+// event delegation so dynamically-rendered View buttons work
+historyBody.addEventListener('click', event => {
+    const button = event.target.closest('[data-record-id]');
+    if (!button) return;
+    const record = recordsById.get(button.dataset.recordId);
+    if (record) openDetailModal(record);
+});
+
+function openDetailModal(record) {
+    const outcome = outcomeMeta(record.status);
+    const boolText = (value, yes, no) => (value === undefined || value === null) ? '—' : (value ? yes : no);
+    const boolClass = value => (value === undefined || value === null) ? '' : (value ? 'success-text' : 'error-text');
+
+    document.getElementById('detailSubtitle').textContent = `Record ${record.id}`;
+    document.getElementById('detailDocId').textContent = record.documentId;
+
+    const outcomeEl = document.getElementById('detailOutcome');
+    outcomeEl.textContent = outcome.label;
+    outcomeEl.className = outcome.className === 'success' ? 'success-text' : (outcome.className === 'error' ? 'error-text' : '');
+
+    const rsaEl = document.getElementById('detailRsa');
+    rsaEl.textContent = boolText(record.rsaSignatureValid, 'Valid', 'Invalid');
+    rsaEl.className = boolClass(record.rsaSignatureValid);
+
+    const integrityEl = document.getElementById('detailIntegrity');
+    integrityEl.textContent = boolText(record.integrityMatch, 'Match', 'Mismatch');
+    integrityEl.className = boolClass(record.integrityMatch);
+
+    const certEl = document.getElementById('detailCertificate');
+    certEl.textContent = boolText(record.certificateValid, 'Valid', 'Invalid');
+    certEl.className = boolClass(record.certificateValid);
+
+    document.getElementById('detailSigner').textContent = record.signer || 'Unknown';
+    document.getElementById('detailVerifiedBy').textContent = record.verifiedBy || '—';
+    document.getElementById('detailTimestamp').textContent = formatTimestamp(record.verifiedAt);
+    document.getElementById('detailHash').textContent = record.hash || '—';
+
+    document.getElementById('detailModal').classList.remove('hidden');
+}
+
+search.addEventListener('keyup', debouncedLoad);
+statusFilter.addEventListener('change', loadHistory);
+
+loadHistory();
+
+// live updates: backend pushes newly-completed verification records as JSON, not raw log text
+if (window.EventSource) {
+    const stream = new EventSource('/analyst/api/verifications/stream');
+    stream.onmessage = event => {
+        try {
+            const record = JSON.parse(event.data);
+            // only reload if it would actually be visible under current filters
+            const matchesStatus = !statusFilter.value || record.status === statusFilter.value;
+            const matchesSearch = !search.value.trim() ||
+                record.documentId.toUpperCase().includes(search.value.trim().toUpperCase());
+            if (matchesStatus && matchesSearch) {
+                loadHistory();
+            }
+        } catch (err) {
+            console.warn('Received malformed live update', err);
+        }
+    };
+    stream.onerror = () => {
+        console.warn('Live history stream disconnected');
+    };
+}
+
+const logoutTrigger = document.querySelector('.logout-trigger');
+const logoutModal = document.getElementById('logoutModal');
+const modalCloseButtons = document.querySelectorAll('.modal-close');
+
+logoutTrigger?.addEventListener('click', event => {
+    event.preventDefault();
+    logoutModal.classList.remove('hidden');
+});
+
+modalCloseButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        const overlay = button.closest('.modal-overlay');
+        if (overlay) overlay.classList.add('hidden');
+    });
+});
+
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', event => {
+        if (event.target === overlay) overlay.classList.add('hidden');
+    });
+});
+</script>
+<script src="/js/ui.js"></script>
+</body>
+</html>

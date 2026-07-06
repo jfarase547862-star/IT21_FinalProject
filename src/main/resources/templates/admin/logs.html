@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verification Logs</title>
+    <link rel="stylesheet" href="/css/app.css">
+    <style>
+        .activity-card {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 16px 20px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #f5f9f7 0%, #ffffff 60%);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--primary);
+        }
+
+        .activity-card.warning {
+            border-left-color: #eab308;
+        }
+
+        .activity-card.error {
+            border-left-color: var(--error);
+        }
+
+        .activity-card h4 {
+            margin: 0;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .activity-card p {
+            margin: 0;
+            font-size: 0.88rem;
+            color: var(--muted);
+        }
+
+        .activity-card time {
+            font-size: 0.78rem;
+            color: #9ca3af;
+        }
+
+        .activity-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .activity-card-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 2px;
+        }
+
+        .view-details-btn {
+            border: 0;
+            background: rgba(43, 87, 72, 0.08);
+            color: var(--primary);
+            border-radius: 999px;
+            padding: 7px 12px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .detail-label {
+            margin: 0 0 4px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--muted);
+        }
+
+        .detail-value {
+            margin: 0 0 12px;
+            color: #1f2937;
+            line-height: 1.5;
+        }
+        .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    color: #5b6b63;
+}
+
+.nav-link .nav-icon {
+    color: #6b7c73;
+    flex-shrink: 0;
+    transition: color 0.15s ease;
+}
+
+.nav-link:hover .nav-icon {
+    color: #0b3b2e;
+}
+
+.nav-link.active {
+    color: #0b3b2e;
+    font-weight: 600;
+}
+
+.nav-link.active .nav-icon {
+    color: #0b3b2e;
+}
+ 
+    </style>
+</head>
+<body>
+<div class="app-shell">
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-mark">
+                <img src="/images/IT21Logo.png" alt="IT21 logo" class="brand-logo">
+            </div>
+            <div>
+                <p>Secure Document Authentication</p>
+            </div>
+        </div>
+
+        <nav class="nav-links">
+            <a class="nav-link" href="/dashboard/admin">
+                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+                    <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+                    <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+                    <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+                </svg>
+                Dashboard
+            </a>
+            <a class="nav-link active" href="/admin/users">
+                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/>
+                    <circle cx="10" cy="7" r="4"/>
+                    <path d="M22.5 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16.5 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                Manage Users
+            </a>
+            <a class="nav-link" href="/admin/keys">
+                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="7.5" cy="15.5" r="5.5"/>
+                    <path d="M21 2l-9.6 9.6"/>
+                    <path d="M15.5 7.5l3 3L22 7l-3-3"/>
+                </svg>
+                Manage Keys
+            </a>
+            <a class="nav-link" href="/admin/logs">
+                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <path d="M14 2v6h6"/>
+                    <path d="M9 13h6M9 17h6M9 9h1"/>
+                </svg>
+                Logs &amp; Audits
+            </a>
+            <a class="nav-link" href="/admin/reports">
+                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="20" x2="12" y2="10"/>
+                    <line x1="18" y1="20" x2="18" y2="4"/>
+                    <line x1="6" y1="20" x2="6" y2="16"/>
+                </svg>
+                Reports
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <p>Secure • Fast • Reliable</p>
+        </div>
+    </aside>
+
+    <main class="content">
+        <header class="topbar">
+            <div>
+                <h2>Verification Logs & Audit Trails</h2>
+                <p class="eyebrow">Search and review verification activity and audit details.</p>
+            </div>
+            <div class="user-chip dropdown">
+                <button class="user-chip-button" type="button" aria-expanded="false">
+                    <span th:text="${userName} + ' (Admin)'"></span>
+                    <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 9l6 6 6-6" stroke="#153927" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <div class="dropdown-menu hidden" role="menu">
+                    <a class="dropdown-item logout-trigger" href="#">Log Out</a>
+                </div>
+            </div>
+        </header>
+
+        <section class="dashboard-grid">
+
+            <!-- Audit events as simple activity cards -->
+            <article class="panel">
+                <div class="panel-header">
+                    <h3>Audit Events</h3>
+                </div>
+
+                <div class="panel-content">
+                    <div class="activity-stack">
+                        <div class="activity-card" th:each="event : ${auditEvents}">
+                            <h4 th:text="${event.title}">Event</h4>
+                            <p th:text="${event.description}">No details available.</p>
+                            <time th:text="${event.timeAgo}">Now</time>
+                            <div class="activity-card-actions">
+                                <button class="view-details-btn" type="button"
+                                        th:attr="data-title=${event.title}, data-description=${event.description}, data-date=${event.timeAgo}">
+                                    View Details
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="activity-card" th:if="${#lists.isEmpty(auditEvents)}">
+                            <h4>No audit events yet</h4>
+                            <p>Audit entries will appear here once the system records activity.</p>
+                            <time>—</time>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+            
+        </section>
+    </main>
+
+    <div class="modal-overlay hidden" id="logoutModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Confirm Logout</h3>
+            </div>
+            <p>Are you sure you want to log out? Your current session will end and you will be returned to the login page.</p>
+            <div class="modal-actions">
+                <button type="button" class="ghost-button modal-close">Cancel</button>
+                <a class="primary-button modal-confirm" href="/logout">Log Out</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="eventDetailsModal">
+        <div class="modal-card">
+            <button type="button" class="modal-close modal-close-icon" aria-label="Close">×</button>
+            <div class="modal-header">
+                <h3 id="eventDetailsTitle">Event Details</h3>
+            </div>
+            <div class="modal-body">
+                <p class="detail-label">Date & Time</p>
+                <p class="detail-value" id="eventDetailsDate">-</p>
+                <p class="detail-label">Description</p>
+                <p class="detail-value" id="eventDetailsDescription">-</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const logoutTrigger = document.querySelector('.logout-trigger');
+        const logoutModal = document.getElementById('logoutModal');
+        const eventDetailsModal = document.getElementById('eventDetailsModal');
+        const modalCloseButtons = document.querySelectorAll('.modal-close');
+        const eventDetailsTitle = document.getElementById('eventDetailsTitle');
+        const eventDetailsDate = document.getElementById('eventDetailsDate');
+        const eventDetailsDescription = document.getElementById('eventDetailsDescription');
+
+        logoutTrigger?.addEventListener('click', event => {
+            event.preventDefault();
+            logoutModal.classList.remove('hidden');
+        });
+
+        modalCloseButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const overlay = button.closest('.modal-overlay');
+                if (overlay) {
+                    overlay.classList.add('hidden');
+                }
+            });
+        });
+
+        [logoutModal, eventDetailsModal].forEach(modal => {
+            modal?.addEventListener('click', event => {
+                if (event.target === modal) {
+                    modal.classList.add('hidden');
+                }
+            });
+        });
+
+        document.querySelectorAll('.view-details-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                eventDetailsTitle.textContent = button.dataset.title || 'Event Details';
+                eventDetailsDate.textContent = button.dataset.date || 'Not available';
+                eventDetailsDescription.textContent = button.dataset.description || 'No additional details are available.';
+                eventDetailsModal.classList.remove('hidden');
+            });
+        });
+
+        // Log viewer controls
+        const logOutput = document.getElementById('logOutput');
+        const refreshBtn = document.getElementById('refreshLogs');
+        const clearBtn = document.getElementById('clearLogs');
+        const toggleTailBtn = document.getElementById('toggleTail');
+        let tailing = false;
+        let es = null;
+
+        function appendLine(line) {
+            logOutput.textContent += line + '\n';
+            logOutput.scrollTop = logOutput.scrollHeight;
+        }
+
+        async function fetchRecent() {
+            try {
+                const res = await fetch('/admin/api/logs?lines=200');
+                if (!res.ok) throw new Error('Failed to fetch logs');
+                const json = await res.json();
+                logOutput.textContent = json.join('\n') + '\n';
+                logOutput.scrollTop = logOutput.scrollHeight;
+            } catch (e) {
+                appendLine('Error: ' + e.message);
+            }
+        }
+
+        function startTail() {
+            if (es) return;
+            es = new EventSource('/admin/api/logs/stream');
+            es.onmessage = (ev) => appendLine(ev.data);
+            es.onerror = (err) => {
+                appendLine('Stream closed or error');
+                stopTail();
+            };
+            toggleTailBtn.textContent = 'Stop Tail';
+            tailing = true;
+        }
+
+        function stopTail() {
+            if (es) {
+                try { es.close(); } catch(_) {}
+                es = null;
+            }
+            toggleTailBtn.textContent = 'Start Tail';
+            tailing = false;
+        }
+
+        refreshBtn?.addEventListener('click', fetchRecent);
+        clearBtn?.addEventListener('click', () => { logOutput.textContent = ''; });
+        toggleTailBtn?.addEventListener('click', () => { tailing ? stopTail() : startTail(); });
+
+        // initial load
+        fetchRecent();
+    </script>
+
+    <script src="/js/ui.js"></script>
+</body>
+</html>

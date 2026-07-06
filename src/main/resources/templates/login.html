@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SignaSure - Login</title>
+    <link rel="stylesheet" href="/css/app.css">
+    
+</head>
+<body>
+<main class="login-shell theme-shell">
+    <section class="split-login-card">
+        <section class="login-visual-pane">
+            
+            <div class="login-logo-wrap login-logo-left">
+                <img src="/images/IT21Logo.png" alt="SignaSure logo" class="brand-logo login-logo">
+            </div>
+           
+        </section>
+
+        <section class="login-form-pane">
+            <div class="form-head">
+               
+                <p class="login-kicker">Sign in to SignaSure</p>
+            </div>
+
+            <div th:if="${statusMessage}" class="message-banner success-banner">
+                <p th:text="${statusMessage}"></p>
+            </div>
+            <div th:if="${errorMessage}" class="message-banner error-banner">
+                <p th:text="${errorMessage}"></p>
+            </div>
+
+            <form class="auth-form theme-auth-form" action="/login" method="post">
+                <label>
+                    Email
+                    <input type="email" name="email" placeholder="username@example.com" required>
+                </label>
+
+                <label>
+                    Password
+                    <div class="password-row">
+                        <input type="password" id="passwordField" name="password" placeholder="Password" required>
+                        <button type="button" class="password-toggle" data-target="passwordField">Show</button>
+                    </div>
+                </label>
+
+                <a class="forgot-link" href="#">Forgot Password?</a>
+
+                <button type="submit" class="primary-button">Log In</button>
+            </form>
+
+            <p class="login-footer footer-text">Don’t have an account yet? <a href="/signup">Create one</a></p>
+        </section>
+    </section>
+</main>
+    <script>
+        document.querySelectorAll('.password-toggle').forEach(button => {
+            button.addEventListener('click', () => {
+                const targetId = button.dataset.target;
+                const target = document.getElementById(targetId);
+                if (!target) return;
+
+                if (target.type === 'password') {
+                    target.type = 'text';
+                    button.textContent = 'Hide';
+                } else {
+                    target.type = 'password';
+                    button.textContent = 'Show';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

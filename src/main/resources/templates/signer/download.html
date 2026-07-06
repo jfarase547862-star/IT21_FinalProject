@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Download Signed Documents</title>
+  <link rel="stylesheet" href="/css/app.css" />
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">
+        <img src="/images/IT21Logo.png" alt="IT21 logo" class="brand-logo" />
+      </div>
+      <div>
+        <p>Secure Document Authentication</p>
+      </div>
+    </div>
+    <nav class="nav-links">
+      <a class="nav-link" href="/dashboard/signer">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13a9 9 0 0 1 18 0"/><path d="M12 13l4-4"/><path d="M3 21h18"/></svg>
+        <span>Dashboard</span>
+      </a>
+      <a class="nav-link" href="/signer/upload">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M6 10l6-6 6 6"/><path d="M4 20h16"/></svg>
+        <span>Upload Documents</span>
+      </a>
+      <a class="nav-link" href="/signer/apply">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10-10-4-4L4 16v4Z"/><path d="M13.5 6.5 17.5 10.5"/></svg>
+        <span>Apply Signature</span>
+      </a>
+      <a class="nav-link" href="/signer/results">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span>View Results</span>
+      </a>
+      <a class="nav-link active" href="/signer/download">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12"/><path d="M6 12l6 6 6-6"/><path d="M4 20h16"/></svg>
+        <span>Download Signed Documents</span>
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <p>Secure • Fast • Reliable</p>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="content">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div>
+        <h2>Download Signed Documents</h2>
+        <p class="eyebrow">Retrieve your signed documents for distribution or submission.</p>
+      </div>
+      <div class="user-chip dropdown">
+        <button class="user-chip-button" type="button" aria-expanded="false" id="userChipBtn">
+          <span th:text="${userName} + ' (Owner)'">Juan Dela Cruz (Owner)</span>
+          <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 9l6 6 6-6" stroke="#153927" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="dropdown-menu hidden" id="userDropdown" role="menu">
+          <a class="dropdown-item logout-trigger" href="#">Log Out</a>
+        </div>
+      </div>
+    </header>
+
+    <div class="dashboard-grid">
+
+      <!-- Signed Documents List -->
+      <article class="panel">
+        <div class="panel-header">
+          <h3>Signed Documents</h3>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:12px;" th:if="${!#lists.isEmpty(documents)}">
+          <div th:each="doc : ${documents}"
+               style="display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px; border:1px solid var(--border); border-radius:14px; background:#fff;">
+            <div style="display:flex; align-items:center; gap:14px; min-width:0;">
+              <div class="info-icon" style="width:42px; height:42px; flex-shrink:0; background:#eef6ed; color:#2b5748; font-size:1.1rem;">
+                📄
+              </div>
+              <div style="min-width:0;">
+                <div class="user-name" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+                     th:text="${doc.name}">Signed document</div>
+                <div class="user-email">
+                  <span th:text="${doc.id}">Document ID</span> ·
+                  <span th:text="${doc.date}">Date</span> ·
+                  <span th:text="${doc.size}">Size</span>
+                </div>
+              </div>
+            </div>
+            <a th:href="${doc.downloadUrl}"
+               class="primary-button"
+               style="min-width:0; height:auto; padding:9px 18px; font-size:.875rem; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; text-decoration:none;">
+              ↓ Download
+            </a>
+          </div>
+        </div>
+
+        <div th:if="${#lists.isEmpty(documents)}" style="display:flex; flex-direction:column; gap:12px;">
+          <div style="padding:16px; border:1px dashed var(--border); border-radius:14px; background:#f9fafb; color:#6b7280;">
+            No signed documents are available yet for your account.
+          </div>
+        </div>
+      </article>
+
+      
+
+    </div>
+  </main>
+</div>
+
+<!-- Logout modal -->
+<div class="modal-overlay hidden" id="logoutModal">
+  <div class="modal-card">
+    <button class="modal-close-icon modal-close" type="button" aria-label="Close">✕</button>
+    <div class="modal-header">
+      <h3>Confirm Logout</h3>
+    </div>
+    <p>Are you sure you want to log out? Your current session will end and you will be returned to the login page.</p>
+    <div class="modal-actions">
+      <button type="button" class="ghost-button modal-close">Cancel</button>
+      <a class="primary-button modal-confirm" href="/logout">Log Out</a>
+    </div>
+  </div>
+</div>
+
+<script src="/js/ui.js"></script>
+<script>
+  /* ── User chip dropdown ── */
+  const chipBtn  = document.getElementById('userChipBtn');
+  const userDrop = document.getElementById('userDropdown');
+  chipBtn.addEventListener('click', () => {
+    const open = chipBtn.getAttribute('aria-expanded') === 'true';
+    chipBtn.setAttribute('aria-expanded', String(!open));
+    userDrop.classList.toggle('hidden', open);
+    chipBtn.querySelector('.chev').classList.toggle('open', !open);
+  });
+  document.addEventListener('click', e => {
+    if (!chipBtn.contains(e.target) && !userDrop.contains(e.target)) {
+      chipBtn.setAttribute('aria-expanded', 'false');
+      userDrop.classList.add('hidden');
+      chipBtn.querySelector('.chev').classList.remove('open');
+    }
+  });
+
+  /* ── Logout modal ── */
+  const logoutTrigger     = document.querySelector('.logout-trigger');
+  const logoutModal       = document.getElementById('logoutModal');
+  const modalCloseButtons = document.querySelectorAll('.modal-close');
+  logoutTrigger?.addEventListener('click', e => { e.preventDefault(); logoutModal.classList.remove('hidden'); });
+  modalCloseButtons.forEach(btn => btn.addEventListener('click', () => logoutModal.classList.add('hidden')));
+  logoutModal.addEventListener('click', e => { if (e.target === logoutModal) logoutModal.classList.add('hidden'); });
+</script>
+</body>
+</html>

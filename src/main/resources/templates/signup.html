@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SignaSure - Sign Up</title>
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<main class="login-shell theme-shell">
+    <section class="split-login-card">
+        <section class="login-visual-pane">
+            <div class="login-logo-wrap login-logo-left">
+                <img src="/images/IT21Logo.png" alt="SignaSure logo" class="brand-logo login-logo">
+            </div>
+            <div class="login-visual-copy">
+                <h1>Join SignaSure</h1>
+                <p>Create your staff account and start protecting documents with strong authentication and audit controls.</p>
+                <ul class="feature-list">
+                    <li>Default staff access</li>
+                    <li>Encrypted credentials</li>
+                    <li>Secure document workflows</li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="login-form-pane">
+            <div class="form-head">
+                <p class="login-kicker">Sign Up</p>
+                <p class="form-subtitle">Staff accounts are created securely and assigned the Staff role automatically.</p>
+            </div>
+
+            <div th:if="${statusMessage}" class="message-banner success-banner">
+                <p th:text="${statusMessage}"></p>
+            </div>
+            <div th:if="${errorMessage}" class="message-banner error-banner">
+                <p th:text="${errorMessage}"></p>
+            </div>
+
+            <form class="auth-form theme-auth-form" action="/signup" method="post" data-password-policy>
+                <label>
+                    First Name
+                    <input type="text" name="firstName" placeholder="First name" required>
+                </label>
+
+                <label>
+                    Last Name
+                    <input type="text" name="lastName" placeholder="Last name" required>
+                </label>
+
+                <label>
+                    Email
+                    <input type="email" name="email" placeholder="username@example.com" required>
+                </label>
+
+                <label>
+                    Password
+                    <input type="password" name="password" placeholder="Password" required>
+                    <div class="password-policy">
+                        <p>Password requirements</p>
+                        <ul>
+                            <li data-policy-rule="length">At least 8 characters</li>
+                            <li data-policy-rule="uppercase">At least one uppercase letter</li>
+                            <li data-policy-rule="lowercase">At least one lowercase letter</li>
+                            <li data-policy-rule="digit">At least one digit</li>
+                            <li data-policy-rule="special">At least one special character</li>
+                            <li data-policy-rule="whitespace">No whitespace characters</li>
+                        </ul>
+                    </div>
+                </label>
+
+                <label>
+                    Confirm Password
+                    <input type="password" name="confirmPassword" placeholder="Confirm password" required>
+                    <p class="policy-confirm-message"></p>
+                </label>
+
+                    <button type="submit" class="primary-button">Create Account</button>
+            </form>
+
+            <p class="login-footer footer-text">Already have an account? <a href="/login">Log in</a></p>
+        </section>
+    </section>
+</main>
+<script src="/js/password-policy.js"></script>
+</body>
+</html>
