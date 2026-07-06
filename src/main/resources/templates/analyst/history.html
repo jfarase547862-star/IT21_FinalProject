@@ -5,6 +5,134 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Results History</title>
     <link rel="stylesheet" href="/css/app.css">
+    <style>
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            color: #5b6b63;
+        }
+
+        .nav-link .nav-icon {
+            color: #6b7c73;
+            flex-shrink: 0;
+            transition: color 0.15s ease;
+        }
+
+        .nav-link:hover .nav-icon {
+            color: #0b3b2e;
+        }
+
+        .nav-link.active {
+            color: #0b3b2e;
+            font-weight: 600;
+        }
+
+        .nav-link.active .nav-icon {
+            color: #0b3b2e;
+        }
+
+.table-toolbar {
+    display: flex;
+    justify-content: flex-end;   /* aligns everything to the right */
+    align-items: center;
+    gap: 16px;
+}
+        .table-toolbar select {
+            padding: 12px 16px;
+            border: 1px solid #dbe4ee;
+            border-radius: 10px;
+            background: white;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            margin-top: 6px;
+            border-radius: 20px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .data-table {
+            width: 100%;
+            min-width: 720px;
+            border-collapse: collapse;
+            border-spacing: 0;
+            background: #ffffff;
+        }
+
+        .data-table thead th {
+            position: sticky;
+            top: 0;
+            background: #f8faf8;
+            color: #52625a;
+            font-size: .78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            padding: 14px 20px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .data-table tbody td {
+            padding: 13px 20px;
+            vertical-align: middle;
+            font-size: .92rem;
+            color: #374151;
+            border-bottom: 1px solid #f0f2f0;
+        }
+
+        .data-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .data-table tbody tr {
+            transition: background .15s ease;
+        }
+
+        .data-table tbody tr:hover {
+            background: #f6faf7;
+        }
+
+        .table-button {
+            border: none;
+            background: #153927;
+            color: white;
+            padding: 8px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .table-button:hover {
+            background: #1d5138;
+        }
+
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 11px;
+            border-radius: 999px;
+            font-size: .75rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .status.success {
+            background: rgba(34, 197, 94, .12);
+            color: #16803c;
+        }
+
+        .status.warning {
+            background: #fff7ed;
+            color: #c2410c;
+        }
+
+        .status.error {
+            background: rgba(239, 68, 68, .12);
+            color: #b91c1c;
+        }
+    </style>
 </head>
 <body>
     <div class="app-shell">
@@ -18,10 +146,31 @@
             </div>
         </div>
 
-        <nav class="nav-links">
-            <a class="nav-link" href="/dashboard/analyst">Dashboard</a>
-            <a class="nav-link " href="/analyst/verify">Verify Documents</a>
-            <a class="nav-link active" href="/analyst/history">Verification History</a>
+              <nav class="nav-links">
+            <a class="nav-link" href="/dashboard/analyst">
+                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+                    <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+                    <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+                    <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+                </svg>
+                Dashboard
+            </a>
+            <a class="nav-link" href="/analyst/verify">
+                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/>
+                    <path d="M9 12l2 2 4-4"/>
+                </svg>
+                Verify Documents
+            </a>
+            <a class="nav-link active" href="/analyst/history">
+                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12A9 9 0 1 1 12 3"/>
+                    <path d="M21 3v5h-5"/>
+                    <path d="M12 7v5l4 2"/>
+                </svg>
+                Verification History
+            </a>
         </nav>
 
         <div class="sidebar-footer">
@@ -39,7 +188,10 @@
 
     <div class="user-chip dropdown">
         <button class="user-chip-button" type="button">
-            <span th:text="${userName} + ' (Security Analyst)'"></span>
+            <svg class="user-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg><span th:text="${userName}">User Name</span>
 
             <svg class="chev" width="12" height="12" viewBox="0 0 24 24">
                 <path d="M6 9l6 6 6-6"
@@ -118,28 +270,27 @@
         </div>
         <div class="modal-actions full-span">
             <button type="button" class="ghost-button modal-close">Close</button>
+            <button type="button" class="primary-button" id="downloadReportBtn">Download Report</button>
         </div>
     </div>
 </div>
 
 <section class="dashboard-grid">
     <!-- Search -->
-    <article class="panel">
-        <div class="table-toolbar">
-            <div class="search-box">
-                <input
-                        type="text"
-                        id="historySearch"
-                        placeholder="Search Document ID...">
-            </div>
-            <select id="statusFilter">
-                <option value="">All Results</option>
-                <option value="VALID">Authentic</option>
-                <option value="INVALID">Failed</option>
-                <option value="TAMPERED">Tampered</option>
-            </select>
+    <div class="table-toolbar">
+        <div class="search-box">
+            <input
+                    type="text"
+                    id="historySearch"
+                    placeholder="Search Document ID...">
         </div>
-    </article>
+        <select id="statusFilter">
+            <option value="">All Results</option>
+            <option value="VALID">Authentic</option>
+            <option value="INVALID">Failed</option>
+            <option value="TAMPERED">Tampered</option>
+        </select>
+    </div>
     <!-- Table -->
     <article class="panel">
         <div class="panel-header">
@@ -151,18 +302,22 @@
             </div>
         </div>
         <div class="table-wrapper">
-            <table class="modern-table" id="historyTable">
+            <table class="data-table" id="historyTable">
                 <thead>
                 <tr>
-                    <th>Timestamp</th>
+                    <th>Verified At</th>
                     <th>Document ID</th>
+                    <th>Document Name</th>
                     <th>Signer</th>
-                    <th>Outcome</th>
-                    <th>Verified By</th>
+                    <th>Signature Hash</th>
                     <th>Action</th>
                 </tr>
                 </thead>
-                <tbody id="historyBody"></tbody>
+                <tbody id="historyBody">
+                    <tr th:if="${history == null or #lists.isEmpty(history)}">
+                        <td colspan="6">No verification records found.</td>
+                    </tr>
+                </tbody>
             </table>
         </div>
     </article>
@@ -178,6 +333,7 @@ const MAX_ROWS = 20;
 // keyed by record id so the View button can look up full detail without a second request
 let recordsById = new Map();
 let debounceTimer = null;
+let currentDetailRecord = null;
 
 const OUTCOME_META = {
     VALID:    { label: 'Authentic', className: 'success' },
@@ -202,10 +358,25 @@ function outcomeMeta(status) {
     return OUTCOME_META[status] || { label: status || 'Unknown', className: '' };
 }
 
-function renderRows(records) {
-    recordsById = new Map(records.map(r => [r.id, r]));
+function normalizeRecord(record) {
+    return {
+        ...record,
+        id: record.id || record.ID || record.signature_id || record.signatureId,
+        status: record.status || record.STATUS || 'VALID',
+        verifiedAt: record.verifiedAt || record.verifiedat || record.signed_at || record.signedAt,
+        documentId: record.documentId || record.documentid || record.documentID || record.document_id || '—',
+        docName: record.docName || record.docname || record.documentName || record.document_name || '—',
+        signer: record.signer || record.SIGNER || 'Unknown',
+        hash: record.hash || record.signatureHash || record.signature_hash || '—',
+        verifiedBy: record.verifiedBy || record.verifiedby || '—'
+    };
+}
 
-    if (records.length === 0) {
+function renderRows(records) {
+    const normalizedRecords = records.map(normalizeRecord);
+    recordsById = new Map(normalizedRecords.map(r => [r.id, r]));
+
+    if (normalizedRecords.length === 0) {
         historyBody.innerHTML = `
             <tr class="empty-row">
                 <td colspan="6">No verification records match your search.</td>
@@ -213,15 +384,15 @@ function renderRows(records) {
         return;
     }
 
-    historyBody.innerHTML = records.map(record => {
+    historyBody.innerHTML = normalizedRecords.map(record => {
         const outcome = outcomeMeta(record.status);
         return `
             <tr>
                 <td>${formatTimestamp(record.verifiedAt)}</td>
                 <td>${record.documentId}</td>
-                <td>${record.signer || 'Unknown'}</td>
-                <td><span class="status ${outcome.className}">${outcome.label}</span></td>
-                <td>${record.verifiedBy || '—'}</td>
+                <td>${record.docName}</td>
+                <td>${record.signer}</td>
+                <td>${record.hash}</td>
                 <td><button class="table-button" type="button" data-record-id="${record.id}">View</button></td>
             </tr>
         `;
@@ -263,6 +434,7 @@ historyBody.addEventListener('click', event => {
 });
 
 function openDetailModal(record) {
+    currentDetailRecord = record;
     const outcome = outcomeMeta(record.status);
     const boolText = (value, yes, no) => (value === undefined || value === null) ? '—' : (value ? yes : no);
     const boolClass = value => (value === undefined || value === null) ? '' : (value ? 'success-text' : 'error-text');
@@ -298,6 +470,16 @@ search.addEventListener('keyup', debouncedLoad);
 statusFilter.addEventListener('change', loadHistory);
 
 loadHistory();
+
+// Download report button handler
+const downloadReportBtn = document.getElementById('downloadReportBtn');
+if (downloadReportBtn) {
+    downloadReportBtn.addEventListener('click', () => {
+        if (!currentDetailRecord) return;
+        const recordId = currentDetailRecord.id;
+        window.location.href = `/admin/api/staff/report?docId=${encodeURIComponent(recordId)}&format=csv`;
+    });
+}
 
 // live updates: backend pushes newly-completed verification records as JSON, not raw log text
 if (window.EventSource) {

@@ -36,10 +36,6 @@
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
         <span>View Results</span>
       </a>
-      <a class="nav-link" href="/signer/download">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12"/><path d="M6 12l6 6 6-6"/><path d="M4 20h16"/></svg>
-        <span>Download Signed Documents</span>
-      </a>
     </nav>
     <div class="sidebar-footer">
       <p>Secure • Fast • Reliable</p>
@@ -57,7 +53,10 @@
       </div>
       <div class="user-chip dropdown">
         <button class="user-chip-button" type="button" aria-expanded="false" id="userChipBtn">
-          <span th:text="${userName} + ' (Analyst)'">Ana Reyes (Analyst)</span>
+          <svg class="user-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg><span th:text="${userName}">User Name</span>
           <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M6 9l6 6 6-6" stroke="#153927" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>

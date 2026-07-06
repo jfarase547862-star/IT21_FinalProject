@@ -5,6 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Verify Documents</title>
     <link rel="stylesheet" href="/css/app.css">
+        <style>
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            color: #5b6b63;
+        }
+
+        .nav-link .nav-icon {
+            color: #6b7c73;
+            flex-shrink: 0;
+            transition: color 0.15s ease;
+        }
+
+        .nav-link:hover .nav-icon {
+            color: #0b3b2e;
+        }
+
+        .nav-link.active {
+            color: #0b3b2e;
+            font-weight: 600;
+        }
+
+        .nav-link.active .nav-icon {
+            color: #0b3b2e;
+        }
+    </style>
 </head>
 <body>
     <div class="app-shell">
@@ -18,17 +45,29 @@
             </div>
         </div>
 
-        <nav class="nav-links">
+       <nav class="nav-links">
             <a class="nav-link" href="/dashboard/analyst">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 13h8V3H3v10zM3 21h8v-6H3v6zM13 21h8v-10h-8v10zM13 3v6h8V3h-8z" fill="#153927"/></svg>
+                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+                    <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+                    <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+                    <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+                </svg>
                 Dashboard
             </a>
             <a class="nav-link active" href="/analyst/verify">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 12l2 2 4-4" stroke="#153927" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/>
+                    <path d="M9 12l2 2 4-4"/>
+                </svg>
                 Verify Documents
             </a>
             <a class="nav-link" href="/analyst/history">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 12A9 9 0 1 1 12 3" stroke="#153927" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 7v5l4 2" stroke="#153927" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12A9 9 0 1 1 12 3"/>
+                    <path d="M21 3v5h-5"/>
+                    <path d="M12 7v5l4 2"/>
+                </svg>
                 Verification History
             </a>
         </nav>
@@ -45,7 +84,10 @@
          </div>
         <div class="user-chip dropdown">
             <button class="user-chip-button" type="button" aria-expanded="false">
-                <span th:text="${userName} + ' (Analyst)'"></span>
+                <svg class="user-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg><span th:text="${userName}">User Name</span>
                 <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 9l6 6 6-6" stroke="#153927" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
             <div class="dropdown-menu hidden" role="menu">

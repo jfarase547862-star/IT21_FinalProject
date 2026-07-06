@@ -6,32 +6,9 @@
     <title>Manage Keys</title>
     <link rel="stylesheet" href="/css/app.css">
     <style>
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
-
-:root {
-    --primary: #2b5748;
-    --secondary: #9cb080;
-    --text: #1f2937;
-    --muted: #6b7280;
-    --bg: #f9fafb;
-    --card: #ffffff;
-    --border: #e5e7eb;
-    --success: #22c55e;
-    --error: #ef4444;
-}
-
-* { box-sizing: border-box; }
-body {
-    margin: 0;
-    font-family: 'Poppins', sans-serif;
-    color: var(--text);
-    background: var(--bg);
-    padding: 32px 24px 40px;
-}
-
 .panel {
-    background: var(--card);
-    border: 1px solid var(--border);
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
     border-radius: 24px;
     padding: 24px 24px 20px;
     box-shadow: 0 16px 36px rgba(31, 41, 55, 0.06);
@@ -230,7 +207,11 @@ body {
             </div>
             <div class="user-chip dropdown">
                 <button class="user-chip-button" type="button" aria-expanded="false">
-                    <span th:text="${userName} + ' (Admin)'"></span>
+                    <svg class="user-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                    <span th:text="${userName}">User Name</span>
                     <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 9l6 6 6-6" stroke="#153927" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </button>
                 <div class="dropdown-menu hidden" role="menu">

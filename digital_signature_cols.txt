@@ -1,7 +1,0 @@
-﻿signature_id|character varying|NO
-document_id|character varying|NO
-signer_id|character varying|NO
-signature_hash|text|NO
-public_key|text|NO
-signed_at|timestamp without time zone|YES
-key_id|character varying|YES

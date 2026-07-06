@@ -149,10 +149,10 @@ public class DocumentsSigningService {
 
         // 5. Audit Trail Verification: log the signing event
         jdbcTemplate.update(
-                "INSERT INTO audit_trail (event_type, description, actor_id, created_at) VALUES (?, ?, ?, NOW())",
-                "Document Signed",
-                "Document " + documentId + " (" + doc.get("filename") + ") was signed by " + userId,
-                userId);
+            "INSERT INTO audit_trail (event_type, description, actor_id, created_at) VALUES (?, ?, ?, NOW())",
+            "Document Signed",
+            "Document " + documentId + " (" + doc.get("file_name") + ") was signed by " + userId,
+            userId);
 
         Map<String, Object> result = new HashMap<>();
         result.put("documentId", documentId);

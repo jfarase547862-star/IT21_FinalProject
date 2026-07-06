@@ -31,7 +31,7 @@ public class SigningKeyService {
         try {
             return jdbcTemplate.queryForMap(
                     "SELECT key_id, public_key, private_key FROM signing_key " +
-                    "WHERE user_id = ? AND wtus = 'Active' ORDER BY created_at DESC LIMIT 1",
+                    "WHERE user_id = ? AND status = 'Active' ORDER BY created_at DESC LIMIT 1",
                     userId);
         } catch (org.springframework.dao.EmptyResultDataAccessException e) {
             String keyId = generateKeyPairForUser(userId);

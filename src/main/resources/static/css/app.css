@@ -231,6 +231,7 @@ input {
 .content {
     padding: 28px;
     display: grid;
+    align-content: start;   /* ADD THIS: stops rows from stretching to fill the viewport */
     gap: 22px;
 }
 
@@ -606,25 +607,25 @@ input {
 
 /* HISTORY PAGE */
 
-.table-toolbar{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:20px;
+.table-toolbar {
+    display: flex;
+    justify-content: flex-end;   /* aligns everything to the right */
+    align-items: center;
+    gap: 16px;
 }
 
-.search-box{
-    flex:1;
+.search-box {
+    flex: 0 1 360px;
+    min-width: 280px;
+    max-width: 420px;
 }
-
-.search-box input{
-    width:100%;
-    padding:12px 16px;
-    border:1px solid #dbe4ee;
-    border-radius:10px;
-    font-size:.95rem;
+.search-box input {
+    width: 100%;
+    padding: 8px 14px;
+    border: 1px solid #dbe4ee;
+    border-radius: 10px;
+    font-size: .88rem;
 }
-
 .table-toolbar select{
     padding:12px 16px;
     border:1px solid #dbe4ee;

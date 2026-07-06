@@ -5,6 +5,77 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Security Analyst Dashboard</title>
     <link rel="stylesheet" href="/css/app.css">
+    <style>
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            color: #5b6b63;
+        }
+
+        .nav-link .nav-icon {
+            color: #6b7c73;
+            flex-shrink: 0;
+            transition: color 0.15s ease;
+        }
+
+        .nav-link:hover .nav-icon {
+            color: #0b3b2e;
+        }
+
+        .nav-link.active {
+            color: #0b3b2e;
+            font-weight: 600;
+        }
+
+        .nav-link.active .nav-icon {
+            color: #0b3b2e;
+        }
+
+        .activity-card {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 16px 20px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #f5f9f7 0%, #ffffff 60%);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--primary);
+        }
+
+        .activity-card.warning {
+            border-left-color: #eab308;
+        }
+
+        .activity-card.error {
+            border-left-color: var(--error);
+        }
+
+        .activity-card h4 {
+            margin: 0;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .activity-card p {
+            margin: 0;
+            font-size: 0.88rem;
+            color: var(--muted);
+        }
+
+        .activity-card time {
+            font-size: 0.78rem;
+            color: #9ca3af;
+        }
+
+        .activity-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+    </style>
 </head>
 <body>
 <div class="app-shell">
@@ -20,15 +91,27 @@
 
         <nav class="nav-links">
             <a class="nav-link active" href="/dashboard/analyst">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 13h8V3H3v10zM3 21h8v-6H3v6zM13 21h8v-10h-8v10zM13 3v6h8V3h-8z" fill="#153927"/></svg>
+                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+                    <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+                    <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+                    <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+                </svg>
                 Dashboard
             </a>
             <a class="nav-link" href="/analyst/verify">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 12l2 2 4-4" stroke="#153927" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/>
+                    <path d="M9 12l2 2 4-4"/>
+                </svg>
                 Verify Documents
             </a>
             <a class="nav-link" href="/analyst/history">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 12A9 9 0 1 1 12 3" stroke="#153927" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 7v5l4 2" stroke="#153927" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12A9 9 0 1 1 12 3"/>
+                    <path d="M21 3v5h-5"/>
+                    <path d="M12 7v5l4 2"/>
+                </svg>
                 Verification History
             </a>
         </nav>
@@ -45,9 +128,14 @@
            <p class="eyebrow">Monitor document verification activities and system security events. </p>
             </div>
             <div class="user-chip dropdown">
-                <button class="user-chip-button" type="button" aria-expanded="false">
-                    <span th:text="${userName} + ' (Analyst)'"></span>
-                    <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 9l6 6 6-6" stroke="#153927" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+               <button class="user-chip-button" type="button" aria-expanded="false">
+                    <svg class="user-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg><span th:text="${userName}">User Name</span>
+                    <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M6 9l6 6 6-6" stroke="#153927" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
                 </button>
                 <div class="dropdown-menu hidden" role="menu">
                     <a class="dropdown-item logout-trigger" href="#">Log Out</a>
@@ -59,9 +147,7 @@
             <article class="panel dashboard-panel" id="dashboard">
          <div class="panel-header">
     <h3>Security Overview</h3>
-    <button class="ghost-button" type="button">
-        Run Audit
-    </button>
+
 </div>
 
 <div class="stats-grid">
@@ -87,20 +173,18 @@
 
     <h4>Recent Security Activity</h4>
 
-    <div class="activity-item" th:each="entry : ${recentActivity}">
-        <div>
-            <strong th:text="${entry.description}">Activity</strong>
-            <span th:text="${entry.event_type}">INFO</span>
+    <div class="activity-stack">
+        <div class="activity-card" th:each="entry : ${recentActivity}">
+            <h4 th:text="${entry.description}">Activity</h4>
+            <p th:text="${entry.event_type}">INFO</p>
+            <time th:text="${entry.created_at}">Now</time>
         </div>
-        <time th:text="${entry.created_at}">Now</time>
-    </div>
 
-    <div class="activity-item" th:if="${#lists.isEmpty(recentActivity)}">
-        <div>
-            <strong>No recent activity.</strong>
-            <span>INFO</span>
+        <div class="activity-card" th:if="${#lists.isEmpty(recentActivity)}">
+            <h4>No recent activity.</h4>
+            <p>System events and verification actions will appear here.</p>
+            <time>—</time>
         </div>
-        <time>—</time>
     </div>
 
 </div>
@@ -165,8 +249,8 @@
             }
 
             const item = document.createElement('div');
-            item.className = 'activity-item';
-            item.innerHTML = `<div><strong>${escapeHtml(message)}</strong><span>${escapeHtml(level)}</span></div><time>${escapeHtml(timeText || 'Now')}</time>`;
+            item.className = 'activity-card';
+            item.innerHTML = `<h4>${escapeHtml(message)}</h4><p>${escapeHtml(level)}</p><time>${escapeHtml(timeText || 'Now')}</time>`;
             return item;
         }
 
@@ -178,7 +262,7 @@
                 if (!res.ok) throw new Error('Failed to fetch logs');
                 const list = await res.json();
                 // clear existing static items
-                const existing = activityList.querySelectorAll('.activity-item');
+                const existing = activityList.querySelectorAll('.activity-card');
                 existing.forEach(n => n.remove());
                 // server returns oldest-first; show newest at top (under header)
                 const header = activityList.querySelector('h4');
@@ -210,7 +294,7 @@
                 if (firstEl) activityList.insertBefore(node, firstEl);
                 else activityList.appendChild(node);
                 // keep only 20 items
-                const items = activityList.querySelectorAll('.activity-item');
+                const items = activityList.querySelectorAll('.activity-card');
                 if (items.length > 20) items[items.length - 1].remove();
             };
             es.onerror = () => {

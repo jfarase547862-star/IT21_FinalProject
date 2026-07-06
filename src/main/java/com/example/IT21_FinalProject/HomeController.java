@@ -484,17 +484,67 @@ String newUserId = generateUserId();
 		model.addAttribute("recentActivity", recentActivity);
 		return "analyst/analyst-dashboard";
 	}
+	
+	
 
-	@GetMapping({"/dashboard/signer", "/dashboard/signer/", "/signer"})
-	public String staffDashboard(HttpSession session, Model model) {
-		String userName = (String) session.getAttribute("userName");
-		String userEmail = (String) session.getAttribute("userEmail");
-		if (userName == null || userEmail == null) {
-			return "redirect:/login?error=Please+log+in+first.";
-		}
-		model.addAttribute("userName", userName);
-		return "signer/dashboard";
-	}
+@GetMapping({"/dashboard/signer", "/dashboard/signer/", "/signer"})
+public String staffDashboard(HttpSession session, Model model) {
+    String userName = (String) session.getAttribute("userName");
+    String userEmail = (String) session.getAttribute("userEmail");
+    if (userName == null || userEmail == null) {
+        return "redirect:/login?error=Please+log+in+first.";
+    }
+    model.addAttribute("userName", userName);
+
+    String userId = resolveUserId(userEmail);
+
+    // Real-time stat counts for this user's documents
+    try {
+        Integer verifiedCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM document WHERE user_id = ? AND document_status = 'Signed'",
+                Integer.class, userId);
+        Integer pendingCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM document WHERE user_id = ? AND document_status <> 'Signed'",
+                Integer.class, userId);
+        Integer failedCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM audit_trail a JOIN \"user\" u ON a.user_id = u.user_id " +
+                "WHERE u.user_id = ? AND a.event_type IN ('VERIFICATION_FAILED', 'SIGNATURE_REVOKED')",
+                Integer.class, userId);
+
+        model.addAttribute("verifiedCount", verifiedCount != null ? verifiedCount : 0);
+        model.addAttribute("pendingCount", pendingCount != null ? pendingCount : 0);
+        model.addAttribute("failedCount", failedCount != null ? failedCount : 0);
+    } catch (Exception ignored) {
+        model.addAttribute("verifiedCount", 0);
+        model.addAttribute("pendingCount", 0);
+        model.addAttribute("failedCount", 0);
+    }
+
+    // Load recent verification history for this user and add to model
+    try {
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+                "SELECT s.document_id, s.signature_id, d.file_name, s.signed_at, COALESCE(u.first_name || ' ' || u.last_name, s.signer_id) AS signer " +
+                "FROM digital_signature s JOIN document d ON s.document_id = d.document_id LEFT JOIN \"user\" u ON s.signer_id = u.user_id " +
+                "WHERE s.signer_id = ? ORDER BY s.signed_at DESC LIMIT 20",
+                userId);
+        List<Map<String, Object>> history = new java.util.ArrayList<>();
+        for (Map<String, Object> r : rows) {
+            Map<String, Object> item = new java.util.LinkedHashMap<>();
+            item.put("id", r.get("document_id"));
+            item.put("documentName", r.get("file_name"));
+            Object v = r.get("signed_at");
+            item.put("verifiedAt", formatTimestamp(v));
+            item.put("signer", r.get("signer"));
+            item.put("status", "Verified");
+            history.add(item);
+        }
+        model.addAttribute("history", history);
+    } catch (Exception ignored) {
+        // silently ignore history loading errors to avoid breaking the dashboard
+    }
+
+    return "signer/dashboard";
+}
 
 	@GetMapping({"/signer/upload", "/signer/upload/"})
 	public String staffUpload(HttpSession session, Model model) {
@@ -618,6 +668,28 @@ public String analystHistory(HttpSession session, Model model) {
 
     model.addAttribute("userName", userName);
 
+    // Load recent verification history for analysts (global)
+    try {
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+                "SELECT s.signature_id, d.document_id, d.file_name, s.signed_at, s.signature_hash, COALESCE(u.first_name || ' ' || u.last_name, s.signer_id) AS signer " +
+                        "FROM digital_signature s JOIN document d ON s.document_id = d.document_id LEFT JOIN \"user\" u ON s.signer_id = u.user_id " +
+                        "ORDER BY s.signed_at DESC LIMIT 50");
+        List<Map<String, Object>> history = new java.util.ArrayList<>();
+        for (Map<String, Object> r : rows) {
+            Map<String, Object> item = new java.util.LinkedHashMap<>();
+            item.put("id", r.get("signature_id"));
+            item.put("documentId", r.get("document_id"));
+            item.put("docName", r.get("file_name"));
+            item.put("verifiedAt", formatTimestamp(r.get("signed_at")));
+            item.put("signer", r.get("signer"));
+            item.put("hash", r.get("signature_hash"));
+            item.put("status", "VALID");
+            history.add(item);
+        }
+        model.addAttribute("history", history);
+    } catch (Exception ignored) {
+    }
+
     return "analyst/history";
 }
 
@@ -631,7 +703,29 @@ public String staffResults(HttpSession session, Model model) {
         return "redirect:/login?error=Please+log+in+first.";
     }
 
-    model.addAttribute("userName", userName);
+	model.addAttribute("userName", userName);
+
+	// also load recent verification history for this user so results page can show recent items
+	try {
+		String userId = resolveUserId(userEmail);
+		List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+			"SELECT s.document_id, s.signature_id, d.file_name, s.signed_at, COALESCE(u.first_name || ' ' || u.last_name, s.signer_id) AS signer " +
+				"FROM digital_signature s JOIN document d ON s.document_id = d.document_id LEFT JOIN \"user\" u ON s.signer_id = u.user_id " +
+				"WHERE s.signer_id = ? ORDER BY s.signed_at DESC LIMIT 10",
+			userId);
+		List<Map<String, Object>> history = new java.util.ArrayList<>();
+			for (Map<String, Object> r : rows) {
+			Map<String, Object> item = new java.util.LinkedHashMap<>();
+				item.put("id", r.get("document_id"));
+			item.put("documentName", r.get("file_name"));
+			item.put("verifiedAt", formatTimestamp(r.get("signed_at")));
+			item.put("signer", r.get("signer"));
+			item.put("status", "Verified");
+			history.add(item);
+		}
+		model.addAttribute("history", history);
+	} catch (Exception ignored) {
+	}
 
 	return "signer/results";
 }
