@@ -69,11 +69,13 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, SessionAuthenticationFilter sessionAuthenticationFilter) throws Exception {
         http
-            .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**", "/signer/api/**", "/analyst/api/**", "/verify", "/analyst/verify"))
+            .csrf(csrf -> csrf.ignoringRequestMatchers(
+                    "/api/**", "/signer/api/**", "/analyst/api/**", "/verify", "/analyst/verify",
+                    "/forgot-password", "/reset-password", "/signup"))
             .addFilterBefore(sessionAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(HttpMethod.GET, "/", "/login", "/signup", "/css/**", "/js/**", "/images/**", "/error").permitAll()
-                .requestMatchers(HttpMethod.POST, "/login", "/signup").permitAll()
+                .requestMatchers(HttpMethod.GET, "/", "/login", "/signup", "/forgot-password", "/reset-password", "/css/**", "/js/**", "/images/**", "/error").permitAll()
+                .requestMatchers(HttpMethod.POST, "/login", "/signup", "/forgot-password", "/reset-password").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/signer/api/documents/upload").permitAll()
                 .requestMatchers("/signer/api/**").permitAll()

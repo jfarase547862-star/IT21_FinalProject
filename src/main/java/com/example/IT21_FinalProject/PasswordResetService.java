@@ -17,28 +17,31 @@ public class PasswordResetService {
     private static final int TOKEN_VALID_MINUTES = 30;
 
     private final JdbcTemplate jdbcTemplate;
+    private final EmailService emailService;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final SecureRandom secureRandom = new SecureRandom();
 
-    public PasswordResetService(JdbcTemplate jdbcTemplate) {
+    public PasswordResetService(JdbcTemplate jdbcTemplate, EmailService emailService) {
         this.jdbcTemplate = jdbcTemplate;
+        this.emailService = emailService;
     }
 
     /**
-     * Generates a reset token and returns the full reset link,
-     * or null if no account exists for that email.
+     * Generates a reset token, emails the reset link, and returns the link.
+     * Returns null if no account exists for that email.
      */
     public String requestReset(String email, String baseUrl) {
         Map<String, Object> row;
         try {
             row = jdbcTemplate.queryForMap(
-                    "SELECT user_id FROM \"user\" WHERE LOWER(email) = LOWER(?)",
+                    "SELECT user_id, email FROM \"user\" WHERE LOWER(email) = LOWER(?)",
                     email);
         } catch (EmptyResultDataAccessException ex) {
             return null;
         }
 
         String userId = (String) row.get("user_id");
+        String accountEmail = (String) row.get("email");
 
         byte[] randomBytes = new byte[32];
         secureRandom.nextBytes(randomBytes);
@@ -50,7 +53,9 @@ public class PasswordResetService {
                 "INSERT INTO password_reset_token (token, user_id, expires_at, used) VALUES (?, ?, ?, FALSE)",
                 token, userId, expiresAt);
 
-        return baseUrl + "/reset-password?token=" + token;
+        String resetLink = baseUrl + "/reset-password?token=" + token;
+        emailService.sendPasswordResetEmail(accountEmail, resetLink);
+        return resetLink;
     }
 
     public String validateToken(String token) {

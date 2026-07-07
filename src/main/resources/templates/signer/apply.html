@@ -32,10 +32,7 @@
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10-10-4-4L4 16v4Z"/><path d="M13.5 6.5 17.5 10.5"/></svg>
         <span>Apply Signature</span>
       </a>
-      <a class="nav-link" href="/signer/download">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 11l4 4 4-4"/><path d="M4 21h16"/></svg>
-        <span>Download Documents</span>
-      </a>
+  
       <a class="nav-link" href="/signer/results">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
         <span>View Results</span>
@@ -315,12 +312,7 @@
       signedHash.textContent = result.hash;
       signedCard.classList.remove('hidden');
 
-      successBanner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-
-      // Redirect to download page — document is signed but awaiting analyst review
-      setTimeout(() => {
-        window.location.href = '/signer/download?signed=' + encodeURIComponent(result.documentId);
-      }, 700);
+      signedCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
     } catch (err) {
       errorText.textContent = err.message;

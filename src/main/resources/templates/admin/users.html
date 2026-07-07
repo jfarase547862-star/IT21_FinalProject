@@ -442,6 +442,7 @@
             <h3>Create User</h3>
         </div>
         <form method="post" action="/admin/users/create" class="create-user-form" data-password-policy>
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
             <div class="form-grid">
                 <label>
                     First name
@@ -545,6 +546,7 @@
             <h3>Edit User</h3>
         </div>
         <form method="post" action="/admin/users/update-name">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
             <input type="hidden" name="userId">
             <div class="form-grid">
                 <label>
