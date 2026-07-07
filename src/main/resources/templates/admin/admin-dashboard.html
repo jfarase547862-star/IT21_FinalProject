@@ -68,9 +68,25 @@
             gap: 0.35rem;
             padding: 0.95rem 1rem;
             border-radius: 14px;
-            background: linear-gradient(135deg, #f5f9f7 0%, #ffffff 60%);
+            background: #ffffff;
             border: 1px solid #e5e7eb;
-            border-left: 3px solid #153927;
+            border-left: 4px solid #153927;
+        }
+
+        .activity-card.success {
+            border-left-color: #16a34a;
+        }
+
+        .activity-card.warning {
+            border-left-color: #ca8a04;
+        }
+
+        .activity-card.error {
+            border-left-color: #dc2626;
+        }
+
+        .activity-card.info {
+            border-left-color: #2563eb;
         }
 
         .activity-card h4 {
@@ -229,7 +245,7 @@
                 <div class="activity-list" id="activity">
                     <h4>Recent Admin Activity</h4>
                     <div class="activity-stack">
-                        <div class="activity-card" th:each="entry : ${recentActivity}">
+                        <div class="activity-card" th:each="entry : ${recentActivity}" th:classappend="${entry.eventClass != null ? ' ' + entry.eventClass : ''}">
                             <h4 th:text="${entry.description}">Activity</h4>
                             <p th:text="${entry.event_type}">INFO</p>
                             <time th:text="${entry.created_at}">Now</time>

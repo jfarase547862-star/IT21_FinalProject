@@ -231,6 +231,9 @@ String userId = generateUserId();
 						"FROM verification_log vl " +
 						"JOIN document d ON d.document_id = vl.document_id " +
 						"ORDER BY vl.checked_at DESC LIMIT 8");
+		for (Map<String, Object> entry : recentActivity) {
+			entry.put("eventClass", resolveAuditEventClass(String.valueOf(entry.get("event_type"))));
+		}
 
 		model.addAttribute("userName", userName);
 		model.addAttribute("stats", stats);
@@ -415,13 +418,16 @@ String newUserId = generateUserId();
 		}
 
 		List<Map<String, Object>> auditEvents = jdbcTemplate.queryForList(
-				"SELECT created_at, event_type, description FROM audit_trail ORDER BY created_at DESC LIMIT 10");
+				"SELECT created_at, event_type, description, actor_id FROM audit_trail ORDER BY created_at DESC LIMIT 25");
 		List<Map<String, Object>> normalizedEvents = new java.util.ArrayList<>();
 		for (Map<String, Object> event : auditEvents) {
 			Map<String, Object> normalized = new LinkedHashMap<>();
-			normalized.put("title", String.valueOf(event.getOrDefault("event_type", "AUDIT_EVENT")));
+			String eventType = String.valueOf(event.getOrDefault("event_type", "AUDIT_EVENT"));
+			normalized.put("title", eventType);
 			normalized.put("description", String.valueOf(event.getOrDefault("description", "No details available.")));
 			normalized.put("timeAgo", String.valueOf(event.getOrDefault("created_at", "Now")));
+			normalized.put("actorId", String.valueOf(event.getOrDefault("actor_id", "—")));
+			normalized.put("eventClass", resolveAuditEventClass(eventType));
 			normalizedEvents.add(normalized);
 		}
 
@@ -967,5 +973,19 @@ public String staffDashboard(HttpSession session, Model model) {
 				"SELECT COALESCE(MAX(CAST(SUBSTRING(user_id, 4) AS INTEGER)), 0) + 1 FROM \"user\" WHERE user_id LIKE 'USR%';",
 				Integer.class);
 		return String.format("USR%03d", nextNumber);
+	}
+
+	private String resolveAuditEventClass(String eventType) {
+		String normalized = eventType == null ? "" : eventType.toUpperCase();
+		if (normalized.contains("TAMPERED")) {
+			return "warning";
+		}
+		if (normalized.contains("FAILED") || normalized.contains("ERROR") || normalized.contains("DENIED")) {
+			return "error";
+		}
+		if (normalized.contains("AUTHENTIC") || normalized.contains("SIGNED") || normalized.contains("SUCCESS") || normalized.contains("VALID")) {
+			return "success";
+		}
+		return "info";
 	}
 }

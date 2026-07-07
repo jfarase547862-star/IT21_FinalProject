@@ -22,24 +22,45 @@ public class DatabaseEnvironmentPostProcessor implements EnvironmentPostProcesso
     public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
         Map<String, Object> properties = new HashMap<>();
 
-        String databaseUrl = environment.getProperty("DATABASE_URL");
-        if (databaseUrl != null && !databaseUrl.isBlank()) {
-            applyParsedUrl(properties, databaseUrl);
+        String dbHost = environment.getProperty("DB_HOST");
+        String dbName = environment.getProperty("DB_NAME");
+        boolean hasSplitDbConfig = isSet(dbHost) && isSet(dbName) && !dbHost.contains("://");
+
+        if (hasSplitDbConfig) {
+            // Prefer DB_* vars on Render — ignores a bad SPRING_DATASOURCE_URL override.
+            String port = environment.getProperty("DB_PORT", "5432");
+            properties.put("spring.datasource.url",
+                    "jdbc:postgresql://" + dbHost.trim() + ":" + port + "/" + dbName.trim());
+            if (isSet(environment.getProperty("DB_USER"))) {
+                properties.put("spring.datasource.username", environment.getProperty("DB_USER").trim());
+            }
+            if (environment.getProperty("DB_PASSWORD") != null) {
+                properties.put("spring.datasource.password", environment.getProperty("DB_PASSWORD"));
+            }
         } else {
-            String springUrl = firstNonBlank(
-                    environment.getProperty("spring.datasource.url"),
-                    environment.getProperty("SPRING_DATASOURCE_URL"));
-            if (springUrl != null && !springUrl.isBlank()
-                    && (springUrl.startsWith("postgresql://") || springUrl.startsWith("postgres://"))) {
-                applyParsedUrl(properties, springUrl);
-            } else if (springUrl != null && !springUrl.isBlank() && !springUrl.startsWith("jdbc:")) {
-                properties.put("spring.datasource.url", "jdbc:" + springUrl);
+            String databaseUrl = environment.getProperty("DATABASE_URL");
+            if (isSet(databaseUrl)) {
+                applyParsedUrl(properties, databaseUrl);
+            } else {
+                String springUrl = firstNonBlank(
+                        environment.getProperty("SPRING_DATASOURCE_URL"),
+                        environment.getProperty("spring.datasource.url"));
+                if (isSet(springUrl)
+                        && (springUrl.startsWith("postgresql://") || springUrl.startsWith("postgres://"))) {
+                    applyParsedUrl(properties, springUrl);
+                } else if (isSet(springUrl) && !springUrl.startsWith("jdbc:")) {
+                    properties.put("spring.datasource.url", "jdbc:" + springUrl);
+                }
             }
         }
 
         if (!properties.isEmpty()) {
             environment.getPropertySources().addFirst(new MapPropertySource(PROPERTY_SOURCE, properties));
         }
+    }
+
+    private boolean isSet(String value) {
+        return value != null && !value.isBlank();
     }
 
     private void applyParsedUrl(Map<String, Object> properties, String databaseUrl) {

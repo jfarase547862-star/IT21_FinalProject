@@ -58,7 +58,7 @@
         <p class="eyebrow">View assigned tasks and recent updates.</p>
       </div>
       <div class="user-chip dropdown">
-       <button class="user-chip-button" type="button" aria-expanded="false">
+       <button class="user-chip-button" type="button" aria-expanded="false" id="userChipBtn">
                     <svg class="user-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                         <circle cx="12" cy="7" r="4"/>
@@ -158,18 +158,19 @@
   const chipBtn  = document.getElementById('userChipBtn');
   const userDrop = document.getElementById('userDropdown');
 
-  chipBtn.addEventListener('click', () => {
+  chipBtn?.addEventListener('click', () => {
     const open = chipBtn.getAttribute('aria-expanded') === 'true';
     chipBtn.setAttribute('aria-expanded', String(!open));
     userDrop.classList.toggle('hidden', open);
-    chipBtn.querySelector('.chev').classList.toggle('open', !open);
+    chipBtn.querySelector('.chev')?.classList.toggle('open', !open);
   });
 
   document.addEventListener('click', e => {
+    if (!chipBtn || !userDrop) return;
     if (!chipBtn.contains(e.target) && !userDrop.contains(e.target)) {
       chipBtn.setAttribute('aria-expanded', 'false');
       userDrop.classList.add('hidden');
-      chipBtn.querySelector('.chev').classList.remove('open');
+      chipBtn.querySelector('.chev')?.classList.remove('open');
     }
   });
 
@@ -191,5 +192,6 @@
     if (e.target === logoutModal) logoutModal.classList.add('hidden');
   });
 </script>
+<script src="/js/ui.js"></script>
 </body>
 </html>

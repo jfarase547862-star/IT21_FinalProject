@@ -161,7 +161,7 @@
   /* ── User chip dropdown ── */
   const chipBtn  = document.getElementById('userChipBtn');
   const userDrop = document.getElementById('userDropdown');
-  chipBtn.addEventListener('click', () => {
+  chipBtn?.addEventListener('click', () => {
     const open = chipBtn.getAttribute('aria-expanded') === 'true';
     chipBtn.setAttribute('aria-expanded', String(!open));
     userDrop.classList.toggle('hidden', open);

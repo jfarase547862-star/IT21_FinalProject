@@ -13,17 +13,71 @@
             gap: 8px;
             padding: 16px 20px;
             border-radius: 14px;
-            background: linear-gradient(135deg, #f5f9f7 0%, #ffffff 60%);
+            background: #ffffff;
             border: 1px solid var(--border);
-            border-left: 3px solid var(--primary);
+            border-left: 4px solid var(--primary);
+        }
+
+        .activity-card.success {
+            border-left-color: #16a34a;
         }
 
         .activity-card.warning {
-            border-left-color: #eab308;
+            border-left-color: #ca8a04;
         }
 
         .activity-card.error {
-            border-left-color: var(--error);
+            border-left-color: #dc2626;
+        }
+
+        .activity-card.info {
+            border-left-color: #2563eb;
+        }
+
+        .activity-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .event-type-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            background: rgba(21, 57, 39, 0.1);
+            color: var(--primary);
+        }
+
+        .event-type-badge.success {
+            background: rgba(22, 163, 74, 0.14);
+            color: #15803d;
+        }
+
+        .event-type-badge.warning {
+            background: rgba(202, 138, 4, 0.16);
+            color: #a16207;
+        }
+
+        .event-type-badge.error {
+            background: rgba(220, 38, 38, 0.14);
+            color: #b91c1c;
+        }
+
+        .event-type-badge.info {
+            background: rgba(37, 99, 235, 0.14);
+            color: #1d4ed8;
+        }
+
+        .activity-card-actor {
+            margin: 0;
+            font-size: 0.8rem;
+            color: #6b7280;
         }
 
         .activity-card h4 {
@@ -202,10 +256,13 @@
 
                 <div class="panel-content">
                     <div class="activity-stack">
-                        <div class="activity-card" th:each="event : ${auditEvents}">
-                            <h4 th:text="${event.title}">Event</h4>
-                            <p th:text="${event.description}">No details available.</p>
-                            <time th:text="${event.timeAgo}">Now</time>
+                        <div class="activity-card" th:each="event : ${auditEvents}" th:classappend="${' ' + event.eventClass}">
+                            <div class="activity-card-header">
+                                <span class="event-type-badge" th:classappend="${' ' + event.eventClass}" th:text="${event.title}">Event</span>
+                                <time th:text="${event.timeAgo}">Now</time>
+                            </div>
+                            <h4 th:text="${event.description}">No details available.</h4>
+                            <p class="activity-card-actor" th:text="'Actor: ' + ${event.actorId}">Actor: —</p>
                             <div class="activity-card-actions">
                                 <button class="view-details-btn" type="button"
                                         th:attr="data-title=${event.title}, data-description=${event.description}, data-date=${event.timeAgo}">
@@ -304,11 +361,13 @@
         let es = null;
 
         function appendLine(line) {
+            if (!logOutput) return;
             logOutput.textContent += line + '\n';
             logOutput.scrollTop = logOutput.scrollHeight;
         }
 
         async function fetchRecent() {
+            if (!logOutput) return;
             try {
                 const res = await fetch('/admin/api/logs?lines=200');
                 if (!res.ok) throw new Error('Failed to fetch logs');
@@ -342,11 +401,12 @@
         }
 
         refreshBtn?.addEventListener('click', fetchRecent);
-        clearBtn?.addEventListener('click', () => { logOutput.textContent = ''; });
+        clearBtn?.addEventListener('click', () => { if (logOutput) logOutput.textContent = ''; });
         toggleTailBtn?.addEventListener('click', () => { tailing ? stopTail() : startTail(); });
 
-        // initial load
-        fetchRecent();
+        if (logOutput) {
+            fetchRecent();
+        }
     </script>
 
     <script src="/js/ui.js"></script>
