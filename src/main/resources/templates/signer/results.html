@@ -32,6 +32,10 @@
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10-10-4-4L4 16v4Z"/><path d="M13.5 6.5 17.5 10.5"/></svg>
         <span>Apply Signature</span>
       </a>
+      <a class="nav-link" href="/signer/download">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 11l4 4 4-4"/><path d="M4 21h16"/></svg>
+        <span>Download Documents</span>
+      </a>
       <a class="nav-link active" href="/signer/results">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
         <span>View Results</span>
@@ -120,7 +124,8 @@
       <!-- Recent history -->
       <article class="panel" id="historyPanel">
         <div class="panel-header">
-          <h3>Recent Signed Documents</h3>
+          <h3>Analyst Verification History</h3>
+          <p class="supporting-copy">Only documents reviewed by a security analyst appear here.</p>
         </div>
         <div class="table-wrapper">
           <table class="data-table">
@@ -128,19 +133,27 @@
               <tr>
                 <th>Verified At</th>
                 <th>Document</th>
-                <th>Signer</th>
+                <th>Status</th>
+                <th>Verifier</th>
                 <th>Action</th>
               </tr>
             </thead>
             <tbody id="historyList">
               <tr th:if="${history == null or #lists.isEmpty(history)}">
-                <td colspan="4" style="text-align:center; color:var(--muted); padding:24px 20px;">No recent signed documents.</td>
+                <td colspan="5" style="text-align:center; color:var(--muted); padding:24px 20px;">
+                  No verified documents yet. After signing, download your document and wait for analyst review.
+                </td>
               </tr>
               <tr th:each="r : ${history}">
                 <td th:text="${r.verifiedAt}">Jun 25, 2026</td>
                 <td th:text="${r.documentName}">Contract_v3.pdf</td>
-                <td th:text="${r.signer}">You</td>
-                <td><a th:href="@{'/signer/results?documentId=' + ${r.id}}" class="table-button">View</a></td>
+                <td>
+                  <span class="status"
+                        th:classappend="${r.status == 'Verified' ? ' success' : (r.status == 'Tampered' ? ' warning' : ' error')}"
+                        th:text="${r.status}">Verified</span>
+                </td>
+                <td th:text="${r.signer}">Analyst</td>
+                <td><a href="#" class="table-button view-result-link" th:attr="data-document-id=${r.id}">View</a></td>
               </tr>
             </tbody>
           </table>
@@ -181,18 +194,20 @@
         return;
       }
       const data = await res.json();
-      document.getElementById('resultDocName').textContent = `${data.docName} — Authentic`;
+      const outcome = data.outcome || '';
+      const rsaValid = data.rsaSignatureValid === true;
+      const integrityMatch = data.integrityMatch === true;
+      const isAuthentic = outcome === 'AUTHENTIC' || (rsaValid && integrityMatch);
+
+      document.getElementById('resultDocName').textContent = `${data.docName} — ${isAuthentic ? 'Authentic' : (outcome === 'TAMPERED' ? 'Tampered' : 'Failed')}`;
       document.getElementById('resultVerifiedAt').textContent = `Verified ${new Date(data.signedAt).toLocaleString()}`;
-      document.getElementById('resultCertId').textContent = `Valid · ${data.keyId || data.signatureId}`;
+      document.getElementById('resultCertId').textContent = isAuthentic ? `Valid · ${data.keyId || data.signatureId}` : `Invalid · ${data.keyId || data.signatureId}`;
       document.getElementById('resultSignerName').textContent = data.signerName || data.signerId || 'Unknown';
 
       // status and boolean fields (fallbacks if API doesn't provide explicit values)
       const rsaEl = document.getElementById('resultRsa');
       const integrityEl = document.getElementById('resultIntegrity');
       const statusBadge = document.getElementById('resultStatusBadge');
-
-      const rsaValid = data.rsaSignatureValid ?? true;
-      const integrityMatch = data.integrityMatch ?? true;
 
       rsaEl.textContent = rsaValid ? 'Valid' : 'Invalid';
       rsaEl.className = rsaValid ? 'success-text' : 'error-text';
@@ -233,6 +248,19 @@
       userDrop.classList.add('hidden');
       chipBtn.querySelector('.chev').classList.remove('open');
     }
+  });
+
+  /* ── Result links ── */
+  document.querySelectorAll('.view-result-link').forEach(link => {
+    link.addEventListener('click', event => {
+      event.preventDefault();
+      const docId = link.getAttribute('data-document-id');
+      if (!docId) return;
+      const url = new URL(window.location.href);
+      url.searchParams.set('documentId', docId);
+      window.history.replaceState({}, '', url);
+      loadResult();
+    });
   });
 
   /* ── Logout modal ── */

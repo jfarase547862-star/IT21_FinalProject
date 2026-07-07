@@ -270,7 +270,6 @@
         </div>
         <div class="modal-actions full-span">
             <button type="button" class="ghost-button modal-close">Close</button>
-            <button type="button" class="primary-button" id="downloadReportBtn">Download Report</button>
         </div>
     </div>
 </div>
@@ -290,6 +289,9 @@
             <option value="INVALID">Failed</option>
             <option value="TAMPERED">Tampered</option>
         </select>
+        <button type="button" class="primary-button" id="bulkDownloadBtn" style="height:auto;padding:12px 18px;font-size:.875rem;">
+            Download Reports (CSV)
+        </button>
     </div>
     <!-- Table -->
     <article class="panel">
@@ -333,7 +335,6 @@ const MAX_ROWS = 20;
 // keyed by record id so the View button can look up full detail without a second request
 let recordsById = new Map();
 let debounceTimer = null;
-let currentDetailRecord = null;
 
 const OUTCOME_META = {
     VALID:    { label: 'Authentic', className: 'success' },
@@ -358,17 +359,30 @@ function outcomeMeta(status) {
     return OUTCOME_META[status] || { label: status || 'Unknown', className: '' };
 }
 
+function mapOutcomeToStatus(outcome) {
+    if (!outcome) return 'VALID';
+    const normalized = String(outcome).toUpperCase();
+    if (normalized === 'AUTHENTIC') return 'VALID';
+    if (normalized === 'TAMPERED') return 'TAMPERED';
+    return 'INVALID';
+}
+
 function normalizeRecord(record) {
+    const outcome = record.outcome || record.OUTCOME;
     return {
         ...record,
-        id: record.id || record.ID || record.signature_id || record.signatureId,
-        status: record.status || record.STATUS || 'VALID',
-        verifiedAt: record.verifiedAt || record.verifiedat || record.signed_at || record.signedAt,
+        id: record.id || record.ID || record.signature_id || record.signatureId || record.verificationId,
+        status: record.status || record.STATUS || mapOutcomeToStatus(outcome),
+        outcome,
+        verifiedAt: record.verifiedAt || record.verifiedat || record.checked_at || record.signed_at || record.signedAt,
         documentId: record.documentId || record.documentid || record.documentID || record.document_id || '—',
         docName: record.docName || record.docname || record.documentName || record.document_name || '—',
         signer: record.signer || record.SIGNER || 'Unknown',
         hash: record.hash || record.signatureHash || record.signature_hash || '—',
-        verifiedBy: record.verifiedBy || record.verifiedby || '—'
+        verifiedBy: record.verifiedBy || record.verifiedby || record.verified_by || '—',
+        rsaSignatureValid: record.rsaSignatureValid ?? record.rsa_signature_valid,
+        integrityMatch: record.integrityMatch ?? record.integrity_match,
+        certificateValid: record.certificateValid ?? record.certificate_valid
     };
 }
 
@@ -400,9 +414,7 @@ function renderRows(records) {
 }
 
 async function loadHistory() {
-    const params = new URLSearchParams({ limit: MAX_ROWS });
-    if (search.value.trim()) params.set('documentId', search.value.trim());
-    if (statusFilter.value) params.set('status', statusFilter.value);
+    const params = buildHistoryQueryParams();
 
     try {
         const res = await fetch(`/analyst/api/verifications?${params.toString()}`, {
@@ -434,7 +446,6 @@ historyBody.addEventListener('click', event => {
 });
 
 function openDetailModal(record) {
-    currentDetailRecord = record;
     const outcome = outcomeMeta(record.status);
     const boolText = (value, yes, no) => (value === undefined || value === null) ? '—' : (value ? yes : no);
     const boolClass = value => (value === undefined || value === null) ? '' : (value ? 'success-text' : 'error-text');
@@ -444,7 +455,8 @@ function openDetailModal(record) {
 
     const outcomeEl = document.getElementById('detailOutcome');
     outcomeEl.textContent = outcome.label;
-    outcomeEl.className = outcome.className === 'success' ? 'success-text' : (outcome.className === 'error' ? 'error-text' : '');
+    outcomeEl.className = outcome.className === 'success' ? 'success-text'
+        : (outcome.className === 'warning' ? 'warning-text' : (outcome.className === 'error' ? 'error-text' : ''));
 
     const rsaEl = document.getElementById('detailRsa');
     rsaEl.textContent = boolText(record.rsaSignatureValid, 'Valid', 'Invalid');
@@ -469,17 +481,20 @@ function openDetailModal(record) {
 search.addEventListener('keyup', debouncedLoad);
 statusFilter.addEventListener('change', loadHistory);
 
-loadHistory();
-
-// Download report button handler
-const downloadReportBtn = document.getElementById('downloadReportBtn');
-if (downloadReportBtn) {
-    downloadReportBtn.addEventListener('click', () => {
-        if (!currentDetailRecord) return;
-        const recordId = currentDetailRecord.id;
-        window.location.href = `/admin/api/staff/report?docId=${encodeURIComponent(recordId)}&format=csv`;
-    });
+function buildHistoryQueryParams() {
+    const params = new URLSearchParams({ limit: MAX_ROWS });
+    if (search.value.trim()) params.set('documentId', search.value.trim());
+    if (statusFilter.value) params.set('status', statusFilter.value);
+    return params;
 }
+
+function downloadBulkReports() {
+    window.location.href = `/analyst/api/reports/export?${buildHistoryQueryParams().toString()}`;
+}
+
+document.getElementById('bulkDownloadBtn')?.addEventListener('click', downloadBulkReports);
+
+loadHistory();
 
 // live updates: backend pushes newly-completed verification records as JSON, not raw log text
 if (window.EventSource) {

@@ -80,7 +80,6 @@
      <header class="topbar">
         <div>
             <h2>Verify Documents</h2>
-           <p class="eyebrow">Monitor document verification activities and system security events. </p>
          </div>
         <div class="user-chip dropdown">
             <button class="user-chip-button" type="button" aria-expanded="false">
@@ -109,58 +108,52 @@
 </div>
 
 <section class="dashboard-grid">
-    <!-- Upload Card -->
+
+    <div id="verifyError" class="message-banner error-banner hidden" style="grid-column: 1 / -1;">
+        <p id="verifyErrorText"></p>
+    </div>
+
     <article class="panel">
         <div class="panel-header">
             <div>
-                <h3>Upload Document to Verify</h3>
+                <h3>Pending Review Queue</h3>
                 <p class="supporting-copy">
-                    Upload a PDF or DOCX document that has already been signed. The system will verify its signature and integrity.
+                    Signed documents waiting for analyst verification. Click <strong>Verify</strong> to validate the stored file and generate the final result for the signer.
                 </p>
             </div>
         </div>
-
-        <div id="verifyError" class="message-banner error-banner hidden">
-            <p id="verifyErrorText"></p>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead>
+                <tr>
+                    <th>Signed At</th>
+                    <th>Document ID</th>
+                    <th>Document</th>
+                    <th>Signer</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+                </thead>
+                <tbody id="pendingQueueBody">
+                <tr th:if="${pendingQueue == null or #lists.isEmpty(pendingQueue)}">
+                    <td colspan="6" style="text-align:center; color:var(--muted); padding:24px 20px;">
+                        No pending signed documents right now.
+                    </td>
+                </tr>
+                <tr th:each="item : ${pendingQueue}">
+                    <td th:text="${item.signedAt}">Jul 07, 2026</td>
+                    <td th:text="${item.documentId}">DOC0001</td>
+                    <td th:text="${item.docName}">contract.pdf</td>
+                    <td th:text="${item.signer}">Signer Name</td>
+                    <td><span class="status warning" th:text="${item.status}">Awaiting Review</span></td>
+                    <td>
+                        <button type="button" class="table-button verify-queue-btn"
+                                th:attr="data-document-id=${item.documentId}">Verify</button>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
         </div>
-
-        <form id="verifyForm"
-              method="post"
-              enctype="multipart/form-data"
-              action="/verify">
-            <label class="upload-area">
-                <input
-                        id="fileInput"
-                        type="file"
-                        name="document"
-                        accept=".pdf,.doc,.docx"
-                        hidden>
-                <div class="upload-content">
-                    <div class="upload-icon">
-                        📄
-                    </div>
-                    <h4>Drag & Drop your document</h4>
-                    <p>
-                        PDF or DOCX (Maximum 25 MB)
-                    </p>
-                    <span class="upload-button">
-                        Choose File
-                    </span>
-                    <div
-                            id="selectedFile"
-                            class="selected-file">
-                        No file selected
-                    </div>
-                </div>
-            </label>
-            <button
-                    id="verifyButton"
-                    type="submit"
-                    class="primary-button verify-button"
-                    disabled>
-                Verify Document
-            </button>
-        </form>
     </article>
 
     <!-- Verification Result Modal -->
@@ -204,8 +197,8 @@
                 </div>
             </div>
             <div class="modal-actions">
-                <button type="button" class="ghost-button" id="verifyNewBtn">Verify New File</button>
-                <a class="primary-button" href="/dashboard/analyst">Exit</a>
+                <button type="button" class="ghost-button" id="verifyNewBtn">Close</button>
+                <a class="primary-button" href="/dashboard/analyst">Back to Dashboard</a>
             </div>
         </div>
     </div>
@@ -216,10 +209,6 @@
     </div>
 
     <script>
-    const fileInput = document.getElementById("fileInput");
-    const selectedFile = document.getElementById("selectedFile");
-    const verifyForm = document.getElementById("verifyForm");
-    const verifyButton = document.getElementById("verifyButton");
     const resultModal = document.getElementById("resultModal");
     const resultBadge = document.getElementById("resultBadge");
     const resultBadgeText = document.getElementById("resultBadgeText");
@@ -234,62 +223,7 @@
     const rowSigner = document.getElementById("rowSigner");
     const rowTimestamp = document.getElementById("rowTimestamp");
     const rowHash = document.getElementById("rowHash");
-
-    fileInput.addEventListener("change", function () {
-        if (this.files.length > 0) {
-            selectedFile.textContent = this.files[0].name;
-            verifyButton.disabled = false;
-        } else {
-            selectedFile.textContent = "No file selected";
-            verifyButton.disabled = true;
-        }
-        hideError();
-        resultModal.classList.add("hidden");
-    });
-
-    verifyForm.addEventListener("submit", async function (e) {
-        e.preventDefault();
-
-        if (!fileInput.files.length) return;
-
-        hideError();
-        resultModal.classList.add("hidden");
-        verifyButton.disabled = true;
-        verifyButton.textContent = "Verifying...";
-
-        try {
-            const formData = new FormData();
-            formData.append("document", fileInput.files[0]);
-
-            const response = await fetch("/analyst/verify", {
-                method: "POST",
-                body: formData,
-                headers: { "Accept": "application/json" }
-            });
-
-            if (!response.ok) {
-                const errBody = await response.json().catch(() => null);
-                throw new Error(errBody?.message || `Verification failed (HTTP ${response.status})`);
-            }
-
-            const result = await response.json();
-            renderResult(result);
-
-        } catch (err) {
-            showError(err.message || "Something went wrong while verifying this document. Please try again.");
-        } finally {
-            verifyButton.disabled = false;
-            verifyButton.textContent = "Verify Signature";
-        }
-    });
-
-    verifyNewBtn.addEventListener("click", function () {
-        resultModal.classList.add("hidden");
-        fileInput.value = "";
-        selectedFile.textContent = "No file selected";
-        verifyButton.disabled = true;
-        hideError();
-    });
+    const pendingQueueBody = document.getElementById("pendingQueueBody");
 
     function renderResult(result) {
         const boolLabel = (value, trueWord, falseWord) =>
@@ -319,7 +253,7 @@
         if (status === "VALID") {
             resultBadge.classList.add("success");
             resultBadgeText.textContent = "✓ VALID";
-            resultSummary.textContent = "Signature and document integrity both verified successfully.";
+            resultSummary.textContent = "Signature and document integrity both verified successfully. Final result is now available to the signer.";
         } else if (status === "TAMPERED") {
             resultBadge.classList.add("warning");
             resultBadgeText.textContent = "⚠ TAMPERED";
@@ -339,6 +273,100 @@
     function hideError() {
         verifyError.classList.add("hidden");
     }
+
+    function formatPendingTimestamp(raw) {
+        if (!raw) return "—";
+        const date = new Date(raw);
+        if (Number.isNaN(date.getTime())) return String(raw);
+        return date.toLocaleString();
+    }
+
+    function renderPendingQueue(items) {
+        if (!pendingQueueBody) return;
+        if (!Array.isArray(items) || items.length === 0) {
+            pendingQueueBody.innerHTML = `
+                <tr>
+                    <td colspan="6" style="text-align:center; color:var(--muted); padding:24px 20px;">
+                        No pending signed documents right now.
+                    </td>
+                </tr>`;
+            return;
+        }
+
+        pendingQueueBody.innerHTML = items.map(item => `
+            <tr>
+                <td>${formatPendingTimestamp(item.upload_date)}</td>
+                <td>${item.document_id || "—"}</td>
+                <td>${item.file_name || "—"}</td>
+                <td>${item.signer_name || "—"}</td>
+                <td><span class="status warning">Awaiting Review</span></td>
+                <td>
+                    <button type="button" class="table-button verify-queue-btn"
+                            data-document-id="${item.document_id || ""}">Verify</button>
+                </td>
+            </tr>
+        `).join("");
+
+        attachVerifyHandlers();
+    }
+
+    async function verifyQueuedDocument(documentId, button) {
+        if (!documentId) return;
+
+        hideError();
+        resultModal.classList.add("hidden");
+        const originalText = button.textContent;
+        button.disabled = true;
+        button.textContent = "Verifying…";
+
+        try {
+            const response = await fetch(`/analyst/api/documents/${encodeURIComponent(documentId)}/verify`, {
+                method: "POST",
+                headers: { "Accept": "application/json" }
+            });
+
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(result.message || `Verification failed (HTTP ${response.status})`);
+            }
+
+            renderResult(result);
+            await refreshPendingQueue();
+        } catch (err) {
+            showError(err.message || "Something went wrong while verifying this document.");
+        } finally {
+            button.disabled = false;
+            button.textContent = originalText;
+        }
+    }
+
+    function attachVerifyHandlers() {
+        document.querySelectorAll(".verify-queue-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                verifyQueuedDocument(btn.getAttribute("data-document-id"), btn);
+            });
+        });
+    }
+
+    async function refreshPendingQueue() {
+        try {
+            const response = await fetch("/analyst/api/pending-reviews?limit=50", {
+                headers: { "Accept": "application/json" }
+            });
+            if (!response.ok) return;
+            const items = await response.json();
+            renderPendingQueue(items);
+        } catch (e) {
+            // Keep current table if refresh fails.
+        }
+    }
+
+    verifyNewBtn.addEventListener("click", function () {
+        resultModal.classList.add("hidden");
+        hideError();
+    });
+
+    attachVerifyHandlers();
 
     const logoutTrigger = document.querySelector('.logout-trigger');
     const logoutModal = document.getElementById('logoutModal');
@@ -366,6 +394,9 @@
             resultModal.classList.add('hidden');
         }
     });
+
+    refreshPendingQueue();
+    setInterval(refreshPendingQueue, 5000);
     </script>
     <script src="/js/ui.js"></script>
 

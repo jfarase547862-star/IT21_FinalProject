@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Verification Result</title>
+    <link rel="stylesheet" href="/css/app.css" />
+</head>
+<body>
+<div class="app-shell">
+    <main class="content">
+        <section class="panel" style="max-width: 720px; margin: 2rem auto;">
+            <div class="panel-header">
+                <h2>Verification Outcome</h2>
+            </div>
+            <div class="verification-results">
+                <div class="result-row">
+                    <span>Document</span>
+                    <strong th:text="${result.documentId}">document</strong>
+                </div>
+                <div class="result-row">
+                    <span>Outcome</span>
+                    <strong th:text="${result.outcome}">AUTHENTIC</strong>
+                </div>
+                <div class="result-row">
+                    <span>Verified By</span>
+                    <strong th:text="${result.verifiedBy}">system</strong>
+                </div>
+                <div class="result-row">
+                    <span>Timestamp</span>
+                    <strong th:text="${result.timestamp}">timestamp</strong>
+                </div>
+                <div class="result-row">
+                    <span>Remarks</span>
+                    <strong th:text="${result.remarks}">remarks</strong>
+                </div>
+            </div>
+            <div class="modal-actions" style="margin-top: 1rem;">
+                <a class="primary-button" href="/dashboard/signer">Back</a>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -34,12 +35,14 @@ import java.util.UUID;
 public class HomeController {
 
 	private final JdbcTemplate jdbcTemplate;
+	private final DocumentsSigningService documentsSigningService;
 
 	private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
 	@Autowired
-	public HomeController(JdbcTemplate jdbcTemplate) {
+	public HomeController(JdbcTemplate jdbcTemplate, DocumentsSigningService documentsSigningService) {
 		this.jdbcTemplate = jdbcTemplate;
+		this.documentsSigningService = documentsSigningService;
 	}
 
 	@GetMapping({"/", "/login"})
@@ -157,6 +160,30 @@ String userId = generateUserId();
 		return "redirect:/login?message=Signup+successful.+Please+log+in.";
 	}
 
+	@GetMapping({"/dashboard", "/dashboard/"})
+	public String dashboard(HttpSession session) {
+		String userEmail = (String) session.getAttribute("userEmail");
+		if (userEmail == null) {
+			return "redirect:/login?error=Please+log+in+first.";
+		}
+
+		try {
+			String roleId = jdbcTemplate.queryForObject(
+					"SELECT role_id FROM \"user\" WHERE LOWER(email) = LOWER(?)",
+					String.class,
+					userEmail);
+			if ("ROL001".equals(roleId)) {
+				return "redirect:/dashboard/admin";
+			}
+			if ("ROL004".equals(roleId)) {
+				return "redirect:/dashboard/analyst";
+			}
+			return "redirect:/dashboard/signer";
+		} catch (EmptyResultDataAccessException e) {
+			return "redirect:/login?error=User+not+found.";
+		}
+	}
+
 	@GetMapping({"/dashboard/admin", "/dashboard/admin/", "/admin"})
 	public String adminDashboard(HttpSession session, Model model) {
 		String userName = (String) session.getAttribute("userName");
@@ -194,7 +221,16 @@ String userId = generateUserId();
 		}
 
 		List<Map<String, Object>> recentActivity = jdbcTemplate.queryForList(
-				"SELECT created_at, event_type, description FROM audit_trail ORDER BY created_at DESC LIMIT 5");
+				"SELECT vl.checked_at AS created_at, " +
+						"CASE " +
+						" WHEN vl.outcome = 'AUTHENTIC' THEN 'VERIFICATION_VALID' " +
+						" WHEN vl.outcome = 'TAMPERED' THEN 'VERIFICATION_TAMPERED' " +
+						" ELSE 'VERIFICATION_FAILED' " +
+						"END AS event_type, " +
+						"'Document ' || d.document_id || ' (' || d.file_name || ') verified as ' || vl.outcome AS description " +
+						"FROM verification_log vl " +
+						"JOIN document d ON d.document_id = vl.document_id " +
+						"ORDER BY vl.checked_at DESC LIMIT 8");
 
 		model.addAttribute("userName", userName);
 		model.addAttribute("stats", stats);
@@ -464,9 +500,17 @@ String newUserId = generateUserId();
 
 		Map<String, Object> stats = new LinkedHashMap<>();
 		try {
-			Integer verifiedDocuments = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM digital_signature", Integer.class);
-			Integer pendingDocuments = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM document WHERE document_status <> 'Signed'", Integer.class);
-			Integer recentAlerts = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM audit_trail WHERE event_type IN ('VERIFICATION_FAILED', 'SIGNATURE_REVOKED')", Integer.class);
+			Integer verifiedDocuments = jdbcTemplate.queryForObject(
+					"SELECT COUNT(DISTINCT document_id) FROM verification_log",
+					Integer.class);
+			Integer pendingDocuments = jdbcTemplate.queryForObject(
+					"SELECT COUNT(*) FROM document d " +
+							"WHERE UPPER(d.document_status) = 'SIGNED' " +
+							"AND NOT EXISTS (SELECT 1 FROM verification_log vl WHERE vl.document_id = d.document_id)",
+					Integer.class);
+			Integer recentAlerts = jdbcTemplate.queryForObject(
+					"SELECT COUNT(*) FROM verification_log WHERE outcome IN ('FAILED', 'TAMPERED')",
+					Integer.class);
 			stats.put("verifiedDocuments", verifiedDocuments != null ? verifiedDocuments : 0);
 			stats.put("pendingDocuments", pendingDocuments != null ? pendingDocuments : 0);
 			stats.put("recentAlerts", recentAlerts != null ? recentAlerts : 0);
@@ -501,14 +545,16 @@ public String staffDashboard(HttpSession session, Model model) {
     // Real-time stat counts for this user's documents
     try {
         Integer verifiedCount = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM document WHERE user_id = ? AND document_status = 'Signed'",
+                "SELECT COUNT(DISTINCT vl.document_id) FROM verification_log vl " +
+                "JOIN document d ON vl.document_id = d.document_id WHERE d.user_id = ?",
                 Integer.class, userId);
         Integer pendingCount = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM document WHERE user_id = ? AND document_status <> 'Signed'",
+                "SELECT COUNT(*) FROM document d WHERE d.user_id = ? AND d.document_status = 'Signed' " +
+                "AND NOT EXISTS (SELECT 1 FROM verification_log vl WHERE vl.document_id = d.document_id)",
                 Integer.class, userId);
         Integer failedCount = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM audit_trail a JOIN \"user\" u ON a.user_id = u.user_id " +
-                "WHERE u.user_id = ? AND a.event_type IN ('VERIFICATION_FAILED', 'SIGNATURE_REVOKED')",
+                "SELECT COUNT(*) FROM verification_log vl JOIN document d ON vl.document_id = d.document_id " +
+                "WHERE d.user_id = ? AND vl.outcome IN ('FAILED', 'TAMPERED')",
                 Integer.class, userId);
 
         model.addAttribute("verifiedCount", verifiedCount != null ? verifiedCount : 0);
@@ -520,22 +566,22 @@ public String staffDashboard(HttpSession session, Model model) {
         model.addAttribute("failedCount", 0);
     }
 
-    // Load recent verification history for this user and add to model
+    // Load analyst-verified history only
     try {
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(
-                "SELECT s.document_id, s.signature_id, d.file_name, s.signed_at, COALESCE(u.first_name || ' ' || u.last_name, s.signer_id) AS signer " +
-                "FROM digital_signature s JOIN document d ON s.document_id = d.document_id LEFT JOIN \"user\" u ON s.signer_id = u.user_id " +
-                "WHERE s.signer_id = ? ORDER BY s.signed_at DESC LIMIT 20",
+                "SELECT vl.document_id, d.file_name, vl.outcome, vl.checked_at " +
+                "FROM verification_log vl JOIN document d ON vl.document_id = d.document_id " +
+                "WHERE d.user_id = ? ORDER BY vl.checked_at DESC LIMIT 20",
                 userId);
         List<Map<String, Object>> history = new java.util.ArrayList<>();
         for (Map<String, Object> r : rows) {
             Map<String, Object> item = new java.util.LinkedHashMap<>();
             item.put("id", r.get("document_id"));
             item.put("documentName", r.get("file_name"));
-            Object v = r.get("signed_at");
+            Object v = r.get("checked_at");
             item.put("verifiedAt", formatTimestamp(v));
-            item.put("signer", r.get("signer"));
-            item.put("status", "Verified");
+            String outcome = String.valueOf(r.get("outcome"));
+            item.put("status", "AUTHENTIC".equals(outcome) ? "Verified" : ("TAMPERED".equals(outcome) ? "Tampered" : "Failed"));
             history.add(item);
         }
         model.addAttribute("history", history);
@@ -558,45 +604,75 @@ public String staffDashboard(HttpSession session, Model model) {
 	}
 
 	@GetMapping({"/analyst/verify", "/analyst/verify/"})
-public String analystVerify(HttpSession session, Model model) {
+	public String analystVerify(HttpSession session, Model model) {
+		String userName = (String) session.getAttribute("userName");
+		String userEmail = (String) session.getAttribute("userEmail");
 
-    String userName = (String) session.getAttribute("userName");
-    String userEmail = (String) session.getAttribute("userEmail");
+		if (userName == null || userEmail == null) {
+			return "redirect:/login?error=Please+log+in+first.";
+		}
 
-    if (userName == null || userEmail == null) {
-        return "redirect:/login?error=Please+log+in+first.";
-    }
+		String roleId;
+		try {
+			roleId = jdbcTemplate.queryForObject(
+					"SELECT role_id FROM \"user\" WHERE email = ?",
+					String.class,
+					userEmail
+			);
+		} catch (EmptyResultDataAccessException e) {
+			return "redirect:/login?error=User+not+found.";
+		}
 
-    String roleId;
-    try {
-        roleId = jdbcTemplate.queryForObject(
-                "SELECT role_id FROM \"user\" WHERE email = ?",
-                String.class,
-                userEmail
-        );
-    } catch (EmptyResultDataAccessException e) {
-        return "redirect:/login?error=User+not+found.";
-    }
+		if (!"ROL004".equals(roleId)) {
+			return "redirect:/dashboard";
+		}
 
-    if (!"ROL004".equals(roleId)) {
-        return "redirect:/dashboard";
-    }
+		model.addAttribute("userName", userName);
+		try {
+			List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+					"SELECT d.document_id, d.file_name, d.upload_date, " +
+							"COALESCE(u.first_name || ' ' || u.last_name, d.user_id) AS signer_name " +
+							"FROM document d " +
+							"LEFT JOIN \"user\" u ON d.user_id = u.user_id " +
+							"WHERE UPPER(d.document_status) = 'SIGNED' " +
+							"AND NOT EXISTS (SELECT 1 FROM verification_log vl WHERE vl.document_id = d.document_id) " +
+							"ORDER BY d.upload_date DESC LIMIT 50");
 
-    model.addAttribute("userName", userName);
+			List<Map<String, Object>> pendingQueue = new java.util.ArrayList<>();
+			for (Map<String, Object> row : rows) {
+				Map<String, Object> item = new LinkedHashMap<>();
+				item.put("documentId", row.get("document_id"));
+				item.put("docName", row.get("file_name"));
+				item.put("signedAt", formatTimestamp(row.get("upload_date")));
+				item.put("signer", row.get("signer_name"));
+				item.put("status", "Awaiting Review");
+				pendingQueue.add(item);
+			}
+			model.addAttribute("pendingQueue", pendingQueue);
+		} catch (Exception ignored) {
+			model.addAttribute("pendingQueue", List.of());
+		}
+		return "analyst/verify";
+	}
 
-    return "analyst/verify";
-}
-
-@PostMapping(value = {"/verify", "/analyst/verify"}, consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-	@org.springframework.web.bind.annotation.ResponseBody
+	@PostMapping(value = {"/verify", "/analyst/verify"}, consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+	@ResponseBody
 	public Map<String, Object> handleAnalystVerification(
 			@RequestParam(value = "document", required = false) MultipartFile document,
-			@RequestParam(value = "file", required = false) MultipartFile file) {
+			@RequestParam(value = "file", required = false) MultipartFile file,
+			HttpSession session) {
 		MultipartFile uploadedFile = document != null ? document : file;
 		Map<String, Object> result = new LinkedHashMap<>();
 		if (uploadedFile == null || uploadedFile.isEmpty()) {
 			result.put("status", "ERROR");
 			result.put("message", "No file uploaded");
+			return result;
+		}
+
+		String userEmail = (String) session.getAttribute("userEmail");
+		if (userEmail == null) {
+			result.put("status", "ERROR");
+			result.put("message", "Please log in first.");
 			return result;
 		}
 
@@ -608,24 +684,45 @@ public String analystVerify(HttpSession session, Model model) {
 			for (byte b : digest) sb.append(String.format("%02x", b));
 			String hash = sb.toString();
 
-			// look up signature by hash
 			try {
 				Map<String, Object> row = jdbcTemplate.queryForMap(
-						"SELECT s.signature_id, s.signature_hash, s.signed_at, s.key_id, s.signer_id, d.file_name FROM digital_signature s JOIN document d ON s.document_id = d.document_id WHERE s.signature_hash = ? ORDER BY s.signed_at DESC LIMIT 1",
+						"SELECT s.signature_id, s.document_id, s.signature_hash, s.signature_value, s.public_key, s.signed_at, s.key_id, s.signer_id, d.file_name " +
+							"FROM digital_signature s JOIN document d ON s.document_id = d.document_id WHERE s.signature_hash = ? ORDER BY s.signed_at DESC LIMIT 1",
 						hash);
 
-				result.put("status", "VALID");
-				result.put("rsaSignatureValid", true);
-				result.put("integrityMatch", true);
-				result.put("certificateValid", true);
+				boolean signatureValid = DocumentsSigningService.verifySignature(bytes, (String) row.get("signature_value"), (String) row.get("public_key"));
+				boolean integrityMatch = hash.equals(String.valueOf(row.get("signature_hash")));
+				boolean certificateValid = signatureValid && integrityMatch;
+
+				String documentId = (String) row.get("document_id");
+				String analystId = jdbcTemplate.queryForObject(
+						"SELECT user_id FROM \"user\" WHERE email = ?", String.class, userEmail);
+				Map<String, Object> verification = documentsSigningService.verifyDocument(documentId, analystId);
+				String outcome = String.valueOf(verification.get("outcome"));
+
+				String status;
+				if ("AUTHENTIC".equals(outcome)) {
+					status = "VALID";
+				} else if ("TAMPERED".equals(outcome)) {
+					status = "TAMPERED";
+				} else {
+					status = "INVALID";
+				}
+
+				result.put("status", status);
+				result.put("rsaSignatureValid", signatureValid);
+				result.put("integrityMatch", integrityMatch);
+				result.put("certificateValid", certificateValid);
 				result.put("signer", row.get("signer_id"));
-				result.put("timestamp", String.valueOf(row.get("signed_at")));
+				result.put("timestamp", String.valueOf(verification.get("timestamp")));
 				result.put("hash", hash);
 				result.put("fileName", row.get("file_name"));
 				result.put("signatureId", row.get("signature_id"));
+				result.put("keyId", row.get("key_id"));
+				result.put("documentId", documentId);
+				result.put("outcome", outcome);
 				return result;
 			} catch (org.springframework.dao.EmptyResultDataAccessException ex) {
-				// no matching signature
 				result.put("status", "INVALID");
 				result.put("rsaSignatureValid", false);
 				result.put("integrityMatch", false);
@@ -641,160 +738,163 @@ public String analystVerify(HttpSession session, Model model) {
 	}
 
 	@GetMapping({"/analyst/history", "/analyst/history/"})
-public String analystHistory(HttpSession session, Model model) {
+	public String analystHistory(HttpSession session, Model model) {
+		String userName = (String) session.getAttribute("userName");
+		String userEmail = (String) session.getAttribute("userEmail");
 
-    String userName = (String) session.getAttribute("userName");
-    String userEmail = (String) session.getAttribute("userEmail");
-
-    if (userName == null || userEmail == null) {
-        return "redirect:/login?error=Please+log+in+first.";
-    }
-
-    String roleId;
-    try {
-        roleId = jdbcTemplate.queryForObject(
-                "SELECT role_id FROM \"user\" WHERE email = ?",
-                String.class,
-                userEmail
-        );
-    } catch (EmptyResultDataAccessException e) {
-        return "redirect:/login?error=User+not+found.";
-    }
-
-    // Only Security Analysts can access this page
-    if (!"ROL004".equals(roleId)) {
-        return "redirect:/dashboard";
-    }
-
-    model.addAttribute("userName", userName);
-
-    // Load recent verification history for analysts (global)
-    try {
-        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
-                "SELECT s.signature_id, d.document_id, d.file_name, s.signed_at, s.signature_hash, COALESCE(u.first_name || ' ' || u.last_name, s.signer_id) AS signer " +
-                        "FROM digital_signature s JOIN document d ON s.document_id = d.document_id LEFT JOIN \"user\" u ON s.signer_id = u.user_id " +
-                        "ORDER BY s.signed_at DESC LIMIT 50");
-        List<Map<String, Object>> history = new java.util.ArrayList<>();
-        for (Map<String, Object> r : rows) {
-            Map<String, Object> item = new java.util.LinkedHashMap<>();
-            item.put("id", r.get("signature_id"));
-            item.put("documentId", r.get("document_id"));
-            item.put("docName", r.get("file_name"));
-            item.put("verifiedAt", formatTimestamp(r.get("signed_at")));
-            item.put("signer", r.get("signer"));
-            item.put("hash", r.get("signature_hash"));
-            item.put("status", "VALID");
-            history.add(item);
-        }
-        model.addAttribute("history", history);
-    } catch (Exception ignored) {
-    }
-
-    return "analyst/history";
-}
-
-@GetMapping({"/signer/results", "/signer/results/"})
-public String staffResults(HttpSession session, Model model) {
-
-    String userName = (String) session.getAttribute("userName");
-    String userEmail = (String) session.getAttribute("userEmail");
-
-    if (userName == null || userEmail == null) {
-        return "redirect:/login?error=Please+log+in+first.";
-    }
-
-	model.addAttribute("userName", userName);
-
-	// also load recent verification history for this user so results page can show recent items
-	try {
-		String userId = resolveUserId(userEmail);
-		List<Map<String, Object>> rows = jdbcTemplate.queryForList(
-			"SELECT s.document_id, s.signature_id, d.file_name, s.signed_at, COALESCE(u.first_name || ' ' || u.last_name, s.signer_id) AS signer " +
-				"FROM digital_signature s JOIN document d ON s.document_id = d.document_id LEFT JOIN \"user\" u ON s.signer_id = u.user_id " +
-				"WHERE s.signer_id = ? ORDER BY s.signed_at DESC LIMIT 10",
-			userId);
-		List<Map<String, Object>> history = new java.util.ArrayList<>();
-			for (Map<String, Object> r : rows) {
-			Map<String, Object> item = new java.util.LinkedHashMap<>();
-				item.put("id", r.get("document_id"));
-			item.put("documentName", r.get("file_name"));
-			item.put("verifiedAt", formatTimestamp(r.get("signed_at")));
-			item.put("signer", r.get("signer"));
-			item.put("status", "Verified");
-			history.add(item);
+		if (userName == null || userEmail == null) {
+			return "redirect:/login?error=Please+log+in+first.";
 		}
-		model.addAttribute("history", history);
-	} catch (Exception ignored) {
+
+		String roleId;
+		try {
+			roleId = jdbcTemplate.queryForObject(
+					"SELECT role_id FROM \"user\" WHERE email = ?",
+					String.class,
+					userEmail
+			);
+		} catch (EmptyResultDataAccessException e) {
+			return "redirect:/login?error=User+not+found.";
+		}
+
+		if (!"ROL004".equals(roleId)) {
+			return "redirect:/dashboard";
+		}
+
+		model.addAttribute("userName", userName);
+
+		try {
+			List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+					"SELECT vl.verification_id, vl.document_id, vl.outcome, vl.checked_at, ds.signature_id, ds.signature_hash, " +
+							"COALESCE(signer_u.first_name || ' ' || signer_u.last_name, ds.signer_id) AS signer, " +
+							"COALESCE(analyst_u.first_name || ' ' || analyst_u.last_name, vl.verifier_id) AS verified_by, " +
+							"d.file_name " +
+							"FROM verification_log vl " +
+							"JOIN document d ON d.document_id = vl.document_id " +
+							"JOIN digital_signature ds ON ds.document_id = vl.document_id " +
+							"LEFT JOIN \"user\" signer_u ON signer_u.user_id = ds.signer_id " +
+							"LEFT JOIN \"user\" analyst_u ON analyst_u.user_id = vl.verifier_id " +
+							"ORDER BY vl.checked_at DESC LIMIT 50");
+			List<Map<String, Object>> history = new java.util.ArrayList<>();
+			for (Map<String, Object> r : rows) {
+				Map<String, Object> item = new java.util.LinkedHashMap<>();
+				item.put("id", r.get("signature_id"));
+				item.put("documentId", r.get("document_id"));
+				item.put("docName", r.get("file_name"));
+				item.put("verifiedAt", formatTimestamp(r.get("checked_at")));
+				item.put("signer", r.get("signer"));
+				item.put("verifiedBy", r.get("verified_by"));
+				item.put("hash", r.get("signature_hash"));
+				String outcome = String.valueOf(r.get("outcome"));
+				item.put("status", "AUTHENTIC".equals(outcome) ? "VALID" : ("TAMPERED".equals(outcome) ? "TAMPERED" : "INVALID"));
+				history.add(item);
+			}
+			model.addAttribute("history", history);
+		} catch (Exception ignored) {
+		}
+
+		return "analyst/history";
 	}
 
-	return "signer/results";
-}
-@GetMapping({"/signer/download", "/signer/download/"})
-public String staffDownload(HttpSession session, Model model) {
+	@GetMapping({"/signer/results", "/signer/results/"})
+	public String staffResults(HttpSession session, Model model) {
+		String userName = (String) session.getAttribute("userName");
+		String userEmail = (String) session.getAttribute("userEmail");
 
-    String userName = (String) session.getAttribute("userName");
-    String userEmail = (String) session.getAttribute("userEmail");
+		if (userName == null || userEmail == null) {
+			return "redirect:/login?error=Please+log+in+first.";
+		}
 
-    if (userName == null || userEmail == null) {
-        return "redirect:/login?error=Please+log+in+first.";
-    }
+		model.addAttribute("userName", userName);
 
-    String userId = resolveUserId(userEmail);
-    List<Map<String, Object>> documents = loadSignedDocuments(userId);
+		try {
+			String userId = resolveUserId(userEmail);
+			List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+					"SELECT vl.document_id, d.file_name, vl.outcome, vl.checked_at, " +
+							"COALESCE(u.first_name || ' ' || u.last_name, vl.verifier_id) AS verifier " +
+							"FROM verification_log vl " +
+							"JOIN document d ON vl.document_id = d.document_id " +
+							"LEFT JOIN \"user\" u ON vl.verifier_id = u.user_id " +
+							"WHERE d.user_id = ? ORDER BY vl.checked_at DESC LIMIT 10",
+					userId);
+			List<Map<String, Object>> history = new java.util.ArrayList<>();
+			for (Map<String, Object> r : rows) {
+				Map<String, Object> item = new java.util.LinkedHashMap<>();
+				item.put("id", r.get("document_id"));
+				item.put("documentName", r.get("file_name"));
+				item.put("verifiedAt", formatTimestamp(r.get("checked_at")));
+				item.put("signer", r.get("verifier"));
+				String outcome = String.valueOf(r.get("outcome"));
+				item.put("status", "AUTHENTIC".equals(outcome) ? "Verified" : ("TAMPERED".equals(outcome) ? "Tampered" : "Failed"));
+				history.add(item);
+			}
+			model.addAttribute("history", history);
+		} catch (Exception ignored) {
+		}
 
-    model.addAttribute("userName", userName);
-    model.addAttribute("documents", documents);
+		return "signer/results";
+	}
 
-	return "signer/download";
-}
+	@GetMapping({"/signer/download", "/signer/download/"})
+	public String staffDownload(HttpSession session, Model model) {
+		String userName = (String) session.getAttribute("userName");
+		String userEmail = (String) session.getAttribute("userEmail");
 
-@GetMapping("/signer/download/{documentId}")
-public ResponseEntity<Resource> downloadSignedDocument(@PathVariable String documentId, HttpSession session) throws IOException {
-    String userEmail = (String) session.getAttribute("userEmail");
-    if (userEmail == null) {
-        return ResponseEntity.status(401).build();
-    }
+		if (userName == null || userEmail == null) {
+			return "redirect:/login?error=Please+log+in+first.";
+		}
 
-    String userId = resolveUserId(userEmail);
-    Map<String, Object> row;
-    try {
-        row = jdbcTemplate.queryForMap(
-                "SELECT file_name, file_path FROM document WHERE document_id = ? AND user_id = ? AND document_status = 'Signed'",
-                documentId,
-                userId);
-    } catch (EmptyResultDataAccessException ex) {
-        return ResponseEntity.notFound().build();
-    }
+		String userId = resolveUserId(userEmail);
+		List<Map<String, Object>> documents = loadSignedDocuments(userId);
 
-    Path filePath = Paths.get((String) row.get("file_path"));
-    if (!Files.exists(filePath)) {
-        return ResponseEntity.notFound().build();
-    }
+		model.addAttribute("userName", userName);
+		model.addAttribute("documents", documents);
+		return "signer/download";
+	}
 
-    Resource resource = new UrlResource(filePath.toUri());
-    String fileName = String.valueOf(row.get("file_name"));
-    return ResponseEntity.ok()
-            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
-            .contentType(MediaType.APPLICATION_OCTET_STREAM)
-            .body(resource);
-}
+	@GetMapping("/signer/download/{documentId}")
+	public ResponseEntity<Resource> downloadSignedDocument(@PathVariable String documentId, HttpSession session) throws IOException {
+		String userEmail = (String) session.getAttribute("userEmail");
+		if (userEmail == null) {
+			return ResponseEntity.status(401).build();
+		}
 
-@GetMapping({"/signer/apply", "/signer/apply/"})
-public String staffApply(HttpSession session, Model model) {
+		String userId = resolveUserId(userEmail);
+		Map<String, Object> row;
+		try {
+			row = jdbcTemplate.queryForMap(
+					"SELECT file_name, file_path FROM document WHERE document_id = ? AND user_id = ? AND document_status = 'Signed'",
+					documentId,
+					userId);
+		} catch (EmptyResultDataAccessException ex) {
+			return ResponseEntity.notFound().build();
+		}
 
-    String userName = (String) session.getAttribute("userName");
-    String userEmail = (String) session.getAttribute("userEmail");
+		Path filePath = Paths.get((String) row.get("file_path"));
+		if (!Files.exists(filePath)) {
+			return ResponseEntity.notFound().build();
+		}
 
-    if (userName == null || userEmail == null) {
-        return "redirect:/login?error=Please+log+in+first.";
-    }
+		Resource resource = new UrlResource(filePath.toUri());
+		String fileName = String.valueOf(row.get("file_name"));
+		return ResponseEntity.ok()
+				.header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+				.contentType(MediaType.APPLICATION_OCTET_STREAM)
+				.body(resource);
+	}
 
-    model.addAttribute("userName", userName);
+	@GetMapping({"/signer/apply", "/signer/apply/"})
+	public String staffApply(HttpSession session, Model model) {
+		String userName = (String) session.getAttribute("userName");
+		String userEmail = (String) session.getAttribute("userEmail");
 
-	return "signer/apply";
-}
+		if (userName == null || userEmail == null) {
+			return "redirect:/login?error=Please+log+in+first.";
+		}
 
-
+		model.addAttribute("userName", userName);
+		return "signer/apply";
+	}
 
 	private String resolveUserId(String email) {
 		try {
@@ -813,10 +913,13 @@ public String staffApply(HttpSession session, Model model) {
 		}
 
 		List<Map<String, Object>> rows = jdbcTemplate.queryForList(
-				"SELECT document_id, file_name, upload_date, file_size, file_path FROM document WHERE user_id = ? AND document_status = 'Signed' ORDER BY upload_date DESC",
+				"SELECT d.document_id, d.file_name, d.upload_date, d.file_size, d.file_path, " +
+				"CASE WHEN EXISTS (SELECT 1 FROM verification_log vl WHERE vl.document_id = d.document_id) " +
+				"THEN 'Verified' ELSE 'Awaiting Review' END AS review_status " +
+				"FROM document d WHERE d.user_id = ? AND d.document_status = 'Signed' ORDER BY d.upload_date DESC",
 				userId);
 
-		List<Map<String, Object>> documents = new LinkedHashMap<String, Object>() == null ? List.of() : new java.util.ArrayList<>();
+		List<Map<String, Object>> documents = new java.util.ArrayList<>();
 		for (Map<String, Object> row : rows) {
 			Map<String, Object> document = new LinkedHashMap<>();
 			document.put("id", row.get("document_id"));
@@ -824,6 +927,7 @@ public String staffApply(HttpSession session, Model model) {
 			document.put("date", formatTimestamp(row.get("upload_date")));
 			document.put("size", formatFileSize(row.get("file_size")));
 			document.put("downloadUrl", "/signer/download/" + row.get("document_id"));
+			document.put("reviewStatus", row.get("review_status"));
 			documents.add(document);
 		}
 		return documents;

@@ -154,17 +154,17 @@
 
     <div class="stat-card">
         <span>Verified Documents</span>
-        <strong th:text="${stats.verifiedDocuments}">0</strong>
+        <strong id="verifiedDocumentsCount" th:text="${stats.verifiedDocuments}">0</strong>
     </div>
 
     <div class="stat-card">
         <span>Pending Review</span>
-        <strong th:text="${stats.pendingDocuments}">0</strong>
+        <strong id="pendingDocumentsCount" th:text="${stats.pendingDocuments}">0</strong>
     </div>
 
     <div class="stat-card error-card">
         <span>Recent Alerts</span>
-        <strong th:text="${stats.recentAlerts}">0</strong>
+        <strong id="recentAlertsCount" th:text="${stats.recentAlerts}">0</strong>
     </div>
 
 </div>
@@ -207,6 +207,33 @@
 </div>
 
 <script>
+    // Real-time stats refresh for analyst dashboard cards
+    (function () {
+        const verifiedEl = document.getElementById('verifiedDocumentsCount');
+        const pendingEl = document.getElementById('pendingDocumentsCount');
+        const alertsEl = document.getElementById('recentAlertsCount');
+        if (!verifiedEl || !pendingEl || !alertsEl) return;
+
+        async function refreshStats() {
+            try {
+                const res = await fetch('/analyst/api/dashboard-stats', {
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (!res.ok) return;
+                const stats = await res.json();
+                verifiedEl.textContent = stats.verifiedDocuments ?? 0;
+                pendingEl.textContent = stats.pendingDocuments ?? 0;
+                alertsEl.textContent = stats.recentAlerts ?? 0;
+            } catch (_) {
+                // Keep the existing values if refresh fails.
+            }
+        }
+
+        refreshStats();
+        setInterval(refreshStats, 5000);
+    })();
+</script>
+<script>
     const logoutTrigger = document.querySelector('.logout-trigger');
     const logoutModal = document.getElementById('logoutModal');
     const modalCloseButtons = document.querySelectorAll('.modal-close');
@@ -229,84 +256,72 @@
     });
 </script>
 <script>
-    // Real-time recent security activity using existing server endpoints
+    // Real-time analyst activity feed based on verification outcomes
     (function() {
         const activityList = document.getElementById('activity');
-        if (!activityList) return;
+        const stack = activityList?.querySelector('.activity-stack');
+        if (!activityList || !stack) return;
 
-        const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        const escapeHtml = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-        function renderLogLine(line) {
-            // expected log format: "YYYY-MM-DD HH:MM:SS LEVEL  [source] - message"
-            const m = line.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\s+(\w+)\s+\[.*?\]\s+-\s+(.*)$/);
-            let timeText = '';
-            let level = '';
-            let message = line;
-            if (m) {
-                timeText = m[1];
-                level = m[2];
-                message = m[3];
-            }
-
-            const item = document.createElement('div');
-            item.className = 'activity-card';
-            item.innerHTML = `<h4>${escapeHtml(message)}</h4><p>${escapeHtml(level)}</p><time>${escapeHtml(timeText || 'Now')}</time>`;
-            return item;
+        function formatTime(value) {
+            if (!value) return "Now";
+            const date = new Date(value);
+            return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
         }
 
-        const recentSet = new Set();
+        function toOutcomeLabel(outcome) {
+            if (outcome === 'AUTHENTIC') return 'VALID';
+            if (outcome === 'TAMPERED') return 'TAMPERED';
+            return 'FAILED';
+        }
 
-        async function loadRecentActivity() {
+        function toCardClass(outcome) {
+            if (outcome === 'AUTHENTIC') return 'activity-card';
+            if (outcome === 'TAMPERED') return 'activity-card warning';
+            return 'activity-card error';
+        }
+
+        function renderRows(rows) {
+            if (!Array.isArray(rows) || rows.length === 0) {
+                stack.innerHTML = `
+                    <div class="activity-card">
+                        <h4>No recent activity.</h4>
+                        <p>System events and verification actions will appear here.</p>
+                        <time>—</time>
+                    </div>`;
+                return;
+            }
+
+            stack.innerHTML = rows.map(row => {
+                const outcome = String(row.outcome || '').toUpperCase();
+                const label = toOutcomeLabel(outcome);
+                const analyst = row.analyst_name ? ` by ${escapeHtml(row.analyst_name)}` : '';
+                const message = `Document ${escapeHtml(row.document_id)} (${escapeHtml(row.file_name)}) verified as ${label}${analyst}`;
+                return `
+                    <div class="${toCardClass(outcome)}">
+                        <h4>${message}</h4>
+                        <p>${label}</p>
+                        <time>${escapeHtml(formatTime(row.created_at))}</time>
+                    </div>`;
+            }).join('');
+        }
+
+        async function refreshActivity() {
             try {
-                const res = await fetch('/admin/api/logs?lines=20');
-                if (!res.ok) throw new Error('Failed to fetch logs');
-                const list = await res.json();
-                // clear existing static items
-                const existing = activityList.querySelectorAll('.activity-card');
-                existing.forEach(n => n.remove());
-                // server returns oldest-first; show newest at top (under header)
-                const header = activityList.querySelector('h4');
-                const insertBeforeNode = header ? header.nextElementSibling : null;
-                list.reverse().forEach(line => {
-                    // add to dedupe set and render
-                    recentSet.add(line);
-                    const node = renderLogLine(line);
-                    if (insertBeforeNode) activityList.insertBefore(node, insertBeforeNode);
-                    else activityList.appendChild(node);
+                const res = await fetch('/analyst/api/recent-activity?limit=10', {
+                    headers: { 'Accept': 'application/json' }
                 });
-            } catch (e) {
-                console.warn('Could not load recent activity', e);
+                if (!res.ok) return;
+                const rows = await res.json();
+                renderRows(rows);
+            } catch (_) {
+                // Keep current feed if refresh fails.
             }
         }
 
-        let es = null;
-        function startStream() {
-            if (!window.EventSource) return;
-            if (es) return;
-            es = new EventSource('/admin/api/logs/stream');
-            es.onmessage = ev => {
-                const line = ev.data;
-                if (recentSet.has(line)) return; // ignore duplicates
-                recentSet.add(line);
-                const node = renderLogLine(line);
-                const header = activityList.querySelector('h4');
-                const firstEl = header ? header.nextElementSibling : null;
-                if (firstEl) activityList.insertBefore(node, firstEl);
-                else activityList.appendChild(node);
-                // keep only 20 items
-                const items = activityList.querySelectorAll('.activity-card');
-                if (items.length > 20) items[items.length - 1].remove();
-            };
-            es.onerror = () => {
-                try { es.close(); } catch(_) {}
-                es = null;
-                // retry after a delay
-                setTimeout(startStream, 3000);
-            };
-        }
-
-        loadRecentActivity();
-        startStream();
+        refreshActivity();
+        setInterval(refreshActivity, 5000);
     })();
 </script>
 <script src="/js/ui.js"></script>

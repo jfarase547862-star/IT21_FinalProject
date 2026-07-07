@@ -19,6 +19,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.http.HttpTimeoutException;
 import java.util.List;
 import java.util.Map;
 
@@ -44,7 +45,8 @@ class HomeControllerTests {
 	@Test
 	void adminDashboardAddsLiveStatsToModel() {
 		JdbcTemplate jdbcTemplate = mock(JdbcTemplate.class);
-		HomeController controller = new HomeController(jdbcTemplate);
+		DocumentsSigningService signingService = mock(DocumentsSigningService.class);
+		HomeController controller = new HomeController(jdbcTemplate, signingService);
 		MockHttpSession session = new MockHttpSession();
 		session.setAttribute("userName", "Admin User");
 		session.setAttribute("userEmail", "admin@example.com");
@@ -63,5 +65,23 @@ class HomeControllerTests {
 		assertThat(viewName).isEqualTo("admin/admin-dashboard");
 		assertThat(model.getAttribute("stats")).isNotNull();
 		assertThat(model.getAttribute("recentActivity")).isNotNull();
+	}
+
+	@Test
+	void signerUploadEndpointReturnsUnauthorizedWithoutSession() {
+		try {
+			HttpClient httpClient = HttpClient.newHttpClient();
+			httpClient.sendAsync(
+					HttpRequest.newBuilder(URI.create("http://localhost:18080/signer/api/documents/upload"))
+							.header("Content-Type", "application/octet-stream")
+							.POST(HttpRequest.BodyPublishers.ofString("test"))
+							.build(),
+					HttpResponse.BodyHandlers.ofString())
+				.thenApply(HttpResponse::statusCode)
+				.thenAccept(status -> assertThat(status).isNotEqualTo(403))
+				.join();
+		} catch (Exception exception) {
+			throw new RuntimeException(exception);
+		}
 	}
 }
