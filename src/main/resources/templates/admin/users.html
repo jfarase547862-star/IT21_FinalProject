@@ -205,7 +205,63 @@
     color: var(--muted);
 }
 
-.create-user-form .field-hint {
+#createUserModal .modal-card {
+    width: min(920px, 100%);
+    max-width: none;
+    max-height: none;
+    overflow: visible;
+}
+
+#createUserModal .form-grid {
+    gap: 16px 20px;
+}
+
+#createUserModal .password-policy {
+    margin-top: 8px;
+    padding: 10px 12px;
+}
+
+#createUserModal .password-policy ul {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2px 12px;
+    padding-left: 16px;
+}
+
+#createUserModal .password-policy li {
+    margin-bottom: 4px;
+    font-size: 0.82rem;
+}
+
+#createUserModal .create-user-password {
+    margin-bottom: 4px;
+}
+
+#createUserModal .create-user-confirm {
+    gap: 8px;
+    margin-top: 0;
+}
+
+#createUserModal .create-user-confirm .password-field {
+    margin-top: 2px;
+}
+
+#createUserModal .create-user-confirm .policy-confirm-message {
+    margin: 4px 0 0;
+    min-height: 1.25rem;
+}
+
+#createUserModal .password-field {
+    width: 100%;
+}
+
+#createUserModal .password-field input {
+    width: 100%;
+    min-width: 0;
+}
+
+.create-user-form .create-user-note {
+    margin: 2px 0 0;
     font-size: 0.82rem;
     font-weight: 500;
     color: var(--muted);
@@ -395,17 +451,16 @@
                     Last name
                     <input type="text" name="lastName" autocomplete="family-name" required>
                 </label>
-                <label class="full-span">
+                <label>
                     Email
                     <input type="email" name="email" autocomplete="email" required>
                 </label>
-                <label class="full-span">
+                <label>
                     Role
-                    <input type="text" value="Staff (Signer)" readonly aria-readonly="true">
+                    <input type="text" value="Signer" readonly aria-readonly="true">
                     <input type="hidden" name="roleId" value="ROL003">
-                    <span class="field-hint">New users are created as Staff signers. Admin and Analyst accounts are managed separately.</span>
                 </label>
-                <label class="full-span">
+                <label class="full-span create-user-password">
                     Password
                     <div class="password-field">
                         <input type="password" name="password" autocomplete="new-password" required>
@@ -423,7 +478,7 @@
                         </ul>
                     </div>
                 </label>
-                <label class="full-span">
+                <label class="full-span create-user-confirm">
                     Confirm password
                     <div class="password-field">
                         <input type="password" name="confirmPassword" autocomplete="new-password" required>
@@ -432,7 +487,7 @@
                     <p class="policy-confirm-message"></p>
                 </label>
             </div>
-            <div class="modal-actions full-span">
+            <div class="modal-actions">
                 <button type="button" class="ghost-button modal-close">Cancel</button>
                 <button type="submit" class="primary-button">Create</button>
             </div>
