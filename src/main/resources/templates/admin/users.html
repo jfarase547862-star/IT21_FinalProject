@@ -204,6 +204,19 @@
     padding: 48px 20px;
     color: var(--muted);
 }
+
+.create-user-form .field-hint {
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--muted);
+    line-height: 1.45;
+}
+
+.create-user-form input[readonly] {
+    background: #f8faf8;
+    color: #52625a;
+    cursor: not-allowed;
+}
 </style>
 </head>
 <body>
@@ -372,34 +385,30 @@
         <div class="modal-header modern-header">
             <h3>Create User</h3>
         </div>
-        <form method="post" action="/admin/users/create" data-password-policy>
+        <form method="post" action="/admin/users/create" class="create-user-form" data-password-policy>
             <div class="form-grid">
                 <label>
                     First name
-                    <input type="text" name="firstName" required>
+                    <input type="text" name="firstName" autocomplete="given-name" required>
                 </label>
                 <label>
                     Last name
-                    <input type="text" name="lastName" required>
+                    <input type="text" name="lastName" autocomplete="family-name" required>
                 </label>
-                <label>
+                <label class="full-span">
                     Email
-                    <input type="email" name="email" required>
+                    <input type="email" name="email" autocomplete="email" required>
                 </label>
-                <label>
+                <label class="full-span">
                     Role
-                    <select name="roleId" required>
-                        <option value="" disabled selected>Select role</option>
-                        <option th:each="role : ${roles}"
-                                th:if="${role.role_name} != 'admin'"
-                                th:value="${role.role_id}"
-                                th:text="${role.role_name}"></option>
-                    </select>
+                    <input type="text" value="Staff (Signer)" readonly aria-readonly="true">
+                    <input type="hidden" name="roleId" value="ROL003">
+                    <span class="field-hint">New users are created as Staff signers. Admin and Analyst accounts are managed separately.</span>
                 </label>
-                <label>
+                <label class="full-span">
                     Password
                     <div class="password-field">
-                        <input type="password" name="password" required>
+                        <input type="password" name="password" autocomplete="new-password" required>
                         <button type="button" class="password-toggle" aria-label="Show password">Show</button>
                     </div>
                     <div class="password-policy">
@@ -414,10 +423,10 @@
                         </ul>
                     </div>
                 </label>
-                <label>
+                <label class="full-span">
                     Confirm password
                     <div class="password-field">
-                        <input type="password" name="confirmPassword" required>
+                        <input type="password" name="confirmPassword" autocomplete="new-password" required>
                         <button type="button" class="password-toggle" aria-label="Show password">Show</button>
                     </div>
                     <p class="policy-confirm-message"></p>
@@ -603,6 +612,10 @@
     });
 
     openCreateUser?.addEventListener('click', () => {
+        const form = createUserModal?.querySelector('form');
+        form?.reset();
+        const roleInput = createUserModal?.querySelector('input[name="roleId"]');
+        if (roleInput) roleInput.value = 'ROL003';
         createUserModal.classList.remove('hidden');
     });
 

@@ -220,7 +220,7 @@ String userId = generateUserId();
 			stats.put("pendingDocuments", 0);
 		}
 
-		List<Map<String, Object>> recentActivity = jdbcTemplate.queryForList(
+		List<Map<String, Object>> recentActivityRows = jdbcTemplate.queryForList(
 				"SELECT vl.checked_at AS created_at, " +
 						"CASE " +
 						" WHEN vl.outcome = 'AUTHENTIC' THEN 'VERIFICATION_VALID' " +
@@ -231,8 +231,11 @@ String userId = generateUserId();
 						"FROM verification_log vl " +
 						"JOIN document d ON d.document_id = vl.document_id " +
 						"ORDER BY vl.checked_at DESC LIMIT 8");
-		for (Map<String, Object> entry : recentActivity) {
+		List<Map<String, Object>> recentActivity = new java.util.ArrayList<>();
+		for (Map<String, Object> row : recentActivityRows) {
+			Map<String, Object> entry = new LinkedHashMap<>(row);
 			entry.put("eventClass", resolveAuditEventClass(String.valueOf(entry.get("event_type"))));
+			recentActivity.add(entry);
 		}
 
 		model.addAttribute("userName", userName);
@@ -288,7 +291,7 @@ String userId = generateUserId();
 			@RequestParam String email,
 			@RequestParam String password,
 			@RequestParam String confirmPassword,
-			@RequestParam String roleId,
+			@RequestParam(required = false) String roleId,
 			HttpSession session,
 			Model model) {
 		String userName = (String) session.getAttribute("userName");
@@ -328,6 +331,12 @@ String userId = generateUserId();
 			return "redirect:/admin/users?error=Email+already+exists.";
 		}
 
+		// Admin can only create Staff (Signer) accounts through this form.
+		if (roleId != null && !roleId.isBlank() && !"ROL003".equals(roleId)) {
+			return "redirect:/admin/users?error=Only+Staff+signer+accounts+can+be+created+here.";
+		}
+		String assignedRoleId = "ROL003";
+
 String newUserId = generateUserId();
 		String encoded = passwordEncoder.encode(password);
 		jdbcTemplate.update(
@@ -337,7 +346,7 @@ String newUserId = generateUserId();
 				lastName,
 				email,
 				encoded,
-				roleId);
+				assignedRoleId);
 
 		return "redirect:/admin/users?message=User+created+successfully.";
 	}

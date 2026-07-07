@@ -1,0 +1,2 @@
+org.springframework.boot.env.EnvironmentPostProcessor=\
+com.example.IT21_FinalProject.config.DatabaseEnvironmentPostProcessor
