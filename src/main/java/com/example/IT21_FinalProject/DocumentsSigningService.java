@@ -334,17 +334,6 @@ public class DocumentsSigningService {
         ensureColumnExists("document", "upload_date", "TIMESTAMP");
         ensureColumnExists("document", "file_size", "BIGINT");
         ensureColumnExists("document", "file_hash_original", "TEXT");
-        // Backfill legacy rows so signed documents have a baseline hash for verification.
-        jdbcTemplate.update("""
-                UPDATE document d
-                SET file_hash_original = ds.signature_hash
-                FROM (
-                    SELECT document_id, signature_hash
-                    FROM digital_signature
-                ) ds
-                WHERE d.document_id = ds.document_id
-                  AND (d.file_hash_original IS NULL OR TRIM(d.file_hash_original) = '')
-                """);
 
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS signing_key (
@@ -401,6 +390,18 @@ public class DocumentsSigningService {
         ensureColumnExists("verification_log", "outcome", "VARCHAR(32)");
         ensureColumnExists("verification_log", "checked_at", "TIMESTAMP");
         ensureColumnExists("verification_log", "remarks", "TEXT");
+
+        // Backfill legacy rows so signed documents have a baseline hash for verification.
+        jdbcTemplate.update("""
+                UPDATE document d
+                SET file_hash_original = ds.signature_hash
+                FROM (
+                    SELECT document_id, signature_hash
+                    FROM digital_signature
+                ) ds
+                WHERE d.document_id = ds.document_id
+                  AND (d.file_hash_original IS NULL OR TRIM(d.file_hash_original) = '')
+                """);
     }
 
     private void ensureColumnExists(String tableName, String columnName, String columnType) {
